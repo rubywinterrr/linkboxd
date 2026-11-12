@@ -30,3 +30,11 @@ export type Experiencia = {
   puesto: string;
   lugar: string;
 };
+
+export type Usuario = {
+  nombre: string;
+  apellido: string;
+  nombreUsuario: string;
+  mail: string;
+  tipo: "medios" | "outsider";
+};
