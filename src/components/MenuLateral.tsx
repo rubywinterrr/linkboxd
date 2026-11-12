@@ -1,12 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import {
-  IconoCorazon,
-  IconoEstrellaLinea,
-  IconoMas,
-  IconoUsuario,
-  IconoConfiguracion,
-  IconoCerrarSesion,
-} from "./Iconos";
+import { LuHeart, LuLogOut, LuPlus, LuSettings, LuStar, LuUser } from "react-icons/lu";
 
 interface MenuLateralProps {
   cerrarMenu: () => void;
@@ -23,11 +16,11 @@ export default function MenuLateral({ cerrarMenu }: MenuLateralProps) {
   ];
 
   const linksSecundarios = [
-    { id: 1, label: "Mis favoritos", path: "/cuenta", icono: <IconoCorazon />, extra: "4/4" },
-    { id: 2, label: "Mis reseñas", path: "/cuenta", icono: <IconoEstrellaLinea /> },
-    { id: 3, label: "Publicar proyecto", path: "/publicar", icono: <IconoMas /> },
-    { id: 4, label: "Mi perfil y CV", path: "/cuenta", icono: <IconoUsuario /> },
-    { id: 5, label: "Configuración", path: "/configuracion", icono: <IconoConfiguracion /> },
+    { id: 1, label: "Mis favoritos", path: "/cuenta", icono: <LuHeart className="w-4.5 h-4.5"  />, extra: "4/4" },
+    { id: 2, label: "Mis reseñas", path: "/cuenta", icono: <LuStar className="w-4.5 h-4.5" /> },
+    { id: 3, label: "Publicar proyecto", path: "/publicar", icono: <LuPlus className="w-4.5 h-4.5" /> },
+    { id: 4, label: "Mi perfil y CV", path: "/cuenta", icono: <LuUser className="w-4.5 h-4.5" /> },
+    { id: 5, label: "Configuración", path: "/configuracion", icono: <LuSettings className="w-4.5 h-4.5"/> },
   ];
 
   return (
@@ -104,7 +97,7 @@ export default function MenuLateral({ cerrarMenu }: MenuLateralProps) {
           onClick={cerrarMenu}
           className="px-3 py-2.5 rounded-lg flex items-center gap-2.5 text-apagado hover:bg-elevado transition-colors"
         >
-          <IconoCerrarSesion />
+          <LuLogOut />
           <span className="font-karla font-bold text-[15px]">Cerrar sesión</span>
         </Link>
       </aside>

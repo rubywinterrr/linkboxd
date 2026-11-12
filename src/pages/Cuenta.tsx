@@ -2,13 +2,7 @@ import { useState } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import Poster from "../components/Poster";
-import {
-  IconoLapiz,
-  IconoDescargar,
-  IconoEstrella,
-  IconoMail,
-  IconoTelefono,
-} from "../components/Iconos";
+import { LuDownload, LuMail, LuPencil, LuPhone, LuStar } from "react-icons/lu";
 import type { ProyectoPerfil, Experiencia } from "../utils/types";
 
 const favoritos = [
@@ -64,11 +58,11 @@ export default function Cuenta() {
 
             <div className="flex gap-2.5 pt-1.5">
               <button className="px-4 py-2.5 rounded border border-borde flex items-center gap-2 font-karla font-bold text-sm text-texto hover:bg-elevado transition-colors cursor-pointer">
-                <IconoLapiz />
+                <LuPencil />
                 Editar perfil
               </button>
               <button className="px-4 py-2.5 rounded bg-texto flex items-center gap-2 font-karla font-bold text-sm text-fondo hover:opacity-90 transition-opacity cursor-pointer">
-                <IconoDescargar />
+                <LuDownload />
                 Descargar CV
               </button>
             </div>
@@ -184,7 +178,7 @@ export default function Cuenta() {
                     </div>
                     <div className="flex-1" />
                     <div className="flex items-center gap-1.25 font-karla font-bold text-[13px] text-texto-sec">
-                      <IconoEstrella className="w-3.25 h-3.25 text-coral" />
+                      <LuStar className="w-3.25 h-3.25 text-coral" />
                       {proyecto.puntaje}
                     </div>
                   </div>
@@ -253,11 +247,11 @@ export default function Cuenta() {
                 Contacto
               </span>
               <div className="flex items-center gap-2.5 font-karla text-sm text-texto">
-                <IconoMail className="w-3.75 h-3.75 text-texto-sec" />
+                <LuMail className="w-3.75 h-3.75 text-texto-sec" />
                 martina.sosa@ort.edu.ar
               </div>
               <div className="flex items-center gap-2.5 font-karla text-sm text-texto">
-                <IconoTelefono className="w-3.75 h-3.75 text-texto-sec" />
+                <LuPhone className="w-3.75 h-3.75 text-texto-sec" />
                 +54 11 3028 5858
               </div>
             </aside>

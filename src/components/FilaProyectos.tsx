@@ -1,8 +1,7 @@
 import { Link } from "react-router-dom";
 import type { Fila } from "../utils/types";
 import Poster from "./Poster";
-import { IconoEstrella, IconoFlecha } from "./Iconos";
-
+import { LuArrowRight, LuStar } from "react-icons/lu";
 export default function FilaProyectos({ nombre, cuadrado, proyectos }: Fila) {
   return (
     <section className="w-full px-16 py-6 flex flex-col gap-3.5">
@@ -14,7 +13,7 @@ export default function FilaProyectos({ nombre, cuadrado, proyectos }: Fila) {
           className="flex items-center gap-1.5 font-karla font-bold text-[13px] text-texto-sec hover:text-texto transition-colors"
         >
           Ver todo
-          <IconoFlecha />
+          <LuArrowRight />
         </Link>
       </div>
 
@@ -35,7 +34,7 @@ export default function FilaProyectos({ nombre, cuadrado, proyectos }: Fila) {
               className={cuadrado ? "w-37 h-37" : "w-37 h-55.5"}
             />
             <div className="flex items-center gap-1 font-karla text-xs">
-              <IconoEstrella className="w-2.75 h-2.75 text-coral" />
+              <LuStar className="w-2.75 h-2.75 text-coral" />
               <span className="font-bold text-texto-sec">{proyecto.puntaje}</span>
               <span className="text-apagado">- {proyecto.anio}</span>
             </div>

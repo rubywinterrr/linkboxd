@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import HamburguesaIcon from "./HamburguesaIcon";
 import MenuLateral from "./MenuLateral";
-import { IconoBuscar } from "./Iconos";
+import { LuSearch } from "react-icons/lu";
 
 export default function Navbar() {
   const [menuAbierto, setMenuAbierto] = useState(false);
@@ -30,7 +30,7 @@ export default function Navbar() {
         {/* Derecha: acciones */}
         <div className="w-75 flex items-center justify-end gap-4.5">
           <button className="text-texto cursor-pointer">
-            <IconoBuscar />
+            <LuSearch className="w-4.5 h-4.5" />
           </button>
 
           <Link
