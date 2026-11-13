@@ -1,17 +1,26 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import HamburguesaIcon from "./HamburguesaIcon";
 import MenuLateral from "./MenuLateral";
 import { LuSearch } from "react-icons/lu";
+import flecha from "./flecha.png";
 
 export default function Navbar() {
   const [menuAbierto, setMenuAbierto] = useState(false);
+  const navigate = useNavigate();
+
+  const handleBack = () => {
+    navigate(-1);
+  }
 
   return (
     <>
       <nav className="sticky top-0 z-50 h-16 w-full bg-fondo border-b border-borde flex items-center justify-between px-12">
         {/* Izquierda: logo */}
         <div className="w-75 flex items-center">
+          <button className="absolute left-4 flex items-center justify-center" onClick={handleBack}>
+            <img src={flecha} alt="arrow" className="w-6 h-6 invert" />
+          </button>
           <Link to="/" className="flex items-center gap-1">
             <span className="font-slab font-bold text-xl text-texto">
               LinkBox<span className="text-magenta">d</span>
