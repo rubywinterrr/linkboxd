@@ -4,12 +4,9 @@ import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 
 export default function InicioSesionPaciente () {
-    const [ nombre, setNombre ] = useState<string>('');
     const [ nombreUser, setNombreUser] = useState<string>('');
-    const [ apellido, setApellido ] = useState<string>('');
-    const [ mail, setMail ] = useState<string>(''); 
     const [ contraseña, setContraseña ] = useState<string>('');
-    const [rol, setRol] = useState<string>('Alumno de medios');
+    const [ rol, setRol ] = useState<string>('Alumno de medios');
     const [ cargando, setCargando ] = useState<boolean>(false);
     const [ error, setError ] = useState<string | null>(null);
 
@@ -19,7 +16,7 @@ export default function InicioSesionPaciente () {
         e.preventDefault();
         setError(null);
 
-        if (!nombre.trim() || !apellido.trim() || !mail.trim() || !contraseña.trim()) {
+        if (!nombreUser.trim() || !contraseña.trim()) {
             alert('Por favor, llenar todos sus datos.');
             return;
         }
@@ -33,9 +30,7 @@ export default function InicioSesionPaciente () {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    nombre,
-                    apellido,
-                    email: mail,
+                    nombreUser,
                     password: contraseña,
                     rol
                 }),
@@ -102,16 +97,6 @@ export default function InicioSesionPaciente () {
                     )}
                     
                     <div className="space-y-6">
-                        <div className="flex flex-col gap-2">
-                            <label htmlFor="nombre" className="text-sm font-semibold text-zinc-300">Nombre</label>
-                            <input
-                                type="text" 
-                                id="nombre" 
-                                value={nombre} 
-                                onChange={(e) => setNombre(e.target.value)}  
-                                className="w-full bg-[#1a1a1a] border border-zinc-800 rounded-md p-3 text-white focus:outline-none focus:border-zinc-500 transition-colors"
-                            />
-                        </div>
 
                         <div className="flex flex-col gap-2">
                             <label htmlFor="nombreUser" className="text-sm font-semibold text-zinc-300">Nombre de usuario</label>
@@ -120,28 +105,6 @@ export default function InicioSesionPaciente () {
                                 id="nombreUser" 
                                 value={nombreUser} 
                                 onChange={(e) => setNombreUser(e.target.value)}  
-                                className="w-full bg-[#1a1a1a] border border-zinc-800 rounded-md p-3 text-white focus:outline-none focus:border-zinc-500 transition-colors"
-                            />
-                        </div>
-
-                        <div className="flex flex-col gap-2">
-                            <label htmlFor="apellido" className="text-sm font-semibold text-zinc-300">Apellido</label>
-                            <input
-                                type="text" 
-                                id="apellido" 
-                                value={apellido} 
-                                onChange={(e) => setApellido(e.target.value)}  
-                                className="w-full bg-[#1a1a1a] border border-zinc-800 rounded-md p-3 text-white focus:outline-none focus:border-zinc-500 transition-colors"
-                            />
-                        </div>
-
-                        <div className="flex flex-col gap-2">
-                            <label htmlFor="gmail" className="text-sm font-semibold text-zinc-300">Gmail</label>
-                            <input
-                                type="email" 
-                                id="gmail" 
-                                value={mail} 
-                                onChange={(e) => setMail(e.target.value)}  
                                 className="w-full bg-[#1a1a1a] border border-zinc-800 rounded-md p-3 text-white focus:outline-none focus:border-zinc-500 transition-colors"
                             />
                         </div>
