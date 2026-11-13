@@ -3,6 +3,7 @@ import Inicio from "./pages/Inicio";
 import Cuenta from "./pages/Cuenta";
 import InicioSesion from "./pages/inicioSesion"
 import Registro from './pages/Registro'
+import Publicar from './pages/Publicar'
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
         <Route path="/cuenta" element={<Cuenta />} />
         <Route path="/iniciosesion" element={<InicioSesion />} />
         <Route path="/registro" element={<Registro />} />
+        <Route path="/publicar" element={<Publicar />} />
       </Routes>
     </BrowserRouter>
   );

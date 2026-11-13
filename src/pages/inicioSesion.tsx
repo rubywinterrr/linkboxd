@@ -61,7 +61,7 @@ export default function InicioSesionPaciente () {
             navigate('/');
 
         } catch (err: unknown) {
-            console.error('Error en login paciente:', err);
+            console.error('Error en login:', err);
             setError(err instanceof Error ? err.message : 'Error de conexión con el servidor');
         } finally {
             setCargando(false);

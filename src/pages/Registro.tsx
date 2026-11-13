@@ -11,6 +11,7 @@ export default function InicioSesionPaciente () {
     const [ mail, setMail ] = useState<string>(''); 
     const [ contraseña, setContraseña ] = useState<string>('');
     const [ rol, setRol ] = useState<string>('Alumno de medios');
+    const [ telefono, setTelefono ] = useState<string>('');
     const [ cargando, setCargando ] = useState<boolean>(false);
     const [ error, setError ] = useState<string | null>(null);
 
@@ -40,14 +41,15 @@ export default function InicioSesionPaciente () {
                     apellido,
                     email: mail,
                     password: contraseña,
-                    rol
+                    rol,
+                    telefono
                 }),
             });
 
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.message || 'Error al iniciar sesión');
+                throw new Error(data.message || 'Error al registrarse');
             }
 
             const userId = data.user?.id ?? data.user?.id_usuario ?? data.user?.usuario_id;
@@ -66,7 +68,7 @@ export default function InicioSesionPaciente () {
             navigate('/');
 
         } catch (err: unknown) {
-            console.error('Error en login paciente:', err);
+            console.error('Error en registrarse:', err);
             setError(err instanceof Error ? err.message : 'Error de conexión con el servidor');
         } finally {
             setCargando(false);
@@ -159,6 +161,17 @@ export default function InicioSesionPaciente () {
                                 className="w-full bg-[#1a1a1a] border border-zinc-800 rounded-md p-3 text-white focus:outline-none focus:border-zinc-500 transition-colors"
                             />
                         </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                            <label htmlFor="telefono" className="text-sm font-semibold text-zinc-300">Telefono</label>
+                            <input
+                                type="telefono" 
+                                id="telefono" 
+                                value={telefono} 
+                                onChange={(e) => setTelefono(e.target.value)}  
+                                className="w-full bg-[#1a1a1a] border border-zinc-800 rounded-md p-3 text-white focus:outline-none focus:border-zinc-500 transition-colors"
+                            />
                     </div>
 
                     <div className="mt-12 pt-6">
