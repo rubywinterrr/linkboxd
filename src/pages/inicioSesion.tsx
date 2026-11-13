@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
+import { UsuarioContext } from '../context/UsuarioContext';
 
 export default function InicioSesionPaciente () {
     const [ nombreUser, setNombreUser] = useState<string>('');
@@ -11,6 +12,8 @@ export default function InicioSesionPaciente () {
     const [ error, setError ] = useState<string | null>(null);
 
     const navigate = useNavigate();
+
+    const context = useContext(UsuarioContext);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -50,6 +53,10 @@ export default function InicioSesionPaciente () {
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify(data.user));
             localStorage.setItem('userId', String(userId));
+
+            if (context) {
+                context.iniciarSesion(data.user)
+            }
 
             navigate('/');
 

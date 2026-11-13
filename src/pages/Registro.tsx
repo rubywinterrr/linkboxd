@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
+import { UsuarioContext } from '../context/UsuarioContext';
 
 export default function InicioSesionPaciente () {
     const [ nombre, setNombre ] = useState<string>('');
@@ -14,6 +15,8 @@ export default function InicioSesionPaciente () {
     const [ error, setError ] = useState<string | null>(null);
 
     const navigate = useNavigate();
+
+    const context = useContext(UsuarioContext);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -56,6 +59,10 @@ export default function InicioSesionPaciente () {
             localStorage.setItem('user', JSON.stringify(data.user));
             localStorage.setItem('userId', String(userId));
 
+            if (context) {
+                context.registrarse(data.user);
+            }
+
             navigate('/');
 
         } catch (err: unknown) {
@@ -66,16 +73,12 @@ export default function InicioSesionPaciente () {
         }
     };
 
-    const handleNavigateRegistro = () => {
-        navigate('/registro');
+    const handleNavigateInicioSesion = () => {
+        navigate('/iniciosesion');
     };
 
     const handleBack = () => {
         navigate(-1);
-    }
-
-    const handlePrincipal = () => {
-        navigate ('/');
     }
 
     return (
@@ -86,9 +89,9 @@ export default function InicioSesionPaciente () {
                 
                 <div className="mb-10">
                     <p className="text-zinc-400 text-sm mb-2">
-                        ¿No tienes una cuenta? <button type="button" onClick={handleNavigateRegistro} className="text-white hover:underline">Registrate aquí.</button>
+                        ¿Ya tienes una cuenta? <button type="button" onClick={handleNavigateInicioSesion} className="text-white hover:underline">Inicia sesion aquí.</button>
                     </p>
-                    <h1 className="text-3xl font-bold mb-2">Iniciar sesión</h1>
+                    <h1 className="text-3xl font-bold mb-2">Registrate</h1>
                     <p className="text-zinc-400 text-sm">
                         Los usuarios te reconocerán por tu nombre de usuario. No podrán ver tu contraseña.
                     </p>
@@ -201,7 +204,7 @@ export default function InicioSesionPaciente () {
                             type="submit" 
                             className="bg-white text-black px-6 py-2.5 rounded-md font-semibold text-sm disabled:opacity-50 hover:bg-zinc-200 transition-colors" 
                             disabled={cargando}
-                            onClick={handlePrincipal}
+                            onClick={handleSubmit}
                         >
                             {cargando ? 'Publicando...' : 'Publicar'}
                         </button>
