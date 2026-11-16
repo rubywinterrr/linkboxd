@@ -17,14 +17,16 @@ export default function Publicar () {
     const [ genero, setGenero ] = useState <string>("");
     const [ duracion, setDuracion ] = useState <string>("");
     const [ descripcion, setDescripcion ] = useState <string>("");
-    const [ compañeros, setCompañeros ] = useState <Compañeros[]>();
+    const [ compañeros, setCompañeros ] = useState <Compañeros[]>([]);
     const [ busqueda, setBusqueda ] = useState <string>("");
     const [ comentario, setComentario ] = useState <string>("");
-    const [ imagen, setImagen ] = useState <string>("");
+    const [ imagen ] = useState <string>("");
     const [ cargando, setCargando ] = useState<boolean>(false);
     const [ error, setError ] = useState<string | null>(null);
 
     const navigate = useNavigate();
+
+    const { esMedios } = useUsuarioContext();
 
     const opciones = [
     'Cortometraje',
@@ -107,6 +109,10 @@ export default function Publicar () {
                 setError(err.message);
             });
         }, []);
+
+    if (!esMedios) {
+        return <Navigate to="/" />;
+    }
 
     return (
         <>
