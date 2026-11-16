@@ -14,13 +14,15 @@ export function UsuarioProvider({ children }: { children: ReactNode }) {
 
   const esMedios = usuario?.tipo === "medios";
 
+  const registrarse = (nuevoUsuario: Usuario) => setUsuario(nuevoUsuario);
+
   const iniciarSesion = (nuevoUsuario: Usuario) => setUsuario(nuevoUsuario);
 
   const cerrarSesion = () => setUsuario(null);
 
   return (
     <UsuarioContext.Provider
-      value={{ usuario, esMedios, iniciarSesion, cerrarSesion }}
+      value={{ usuario, esMedios, registrarse, iniciarSesion, cerrarSesion }}
     >
       {children}
     </UsuarioContext.Provider>
