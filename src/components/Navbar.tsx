@@ -4,10 +4,12 @@ import HamburguesaIcon from "./HamburguesaIcon";
 import MenuLateral from "./MenuLateral";
 import { LuSearch } from "react-icons/lu";
 import flecha from "./flecha.png";
+import useUsuarioContext from "../hooks/useUsuarioContext";
 
 export default function Navbar() {
   const [menuAbierto, setMenuAbierto] = useState(false);
   const navigate = useNavigate();
+  const { usuario, esMedios } = useUsuarioContext();
 
   const handleBack = () => {
     navigate(-1);
@@ -42,19 +44,30 @@ export default function Navbar() {
             <LuSearch className="w-4.5 h-4.5" />
           </button>
 
-          <Link
-            to="/publicar"
-            className="px-3.5 py-2 rounded border border-borde font-karla font-bold text-[13px] text-texto hover:bg-elevado transition-colors"
-          >
-            Publicar
-          </Link>
+          {esMedios && (
+            <Link
+              to="/publicar"
+              className="px-3.5 py-2 rounded border border-borde font-karla font-bold text-[13px] text-texto hover:bg-elevado transition-colors"
+            >
+              Publicar
+            </Link>
+          )}
 
-          <Link
-            to="/cuenta"
-            className="w-8 h-8 rounded-full bg-coral flex items-center justify-center font-karla font-bold text-[11px] text-fondo"
-          >
-            MS
-          </Link>
+          {usuario ? (
+            <Link
+              to="/cuenta"
+              className="w-8 h-8 rounded-full bg-coral flex items-center justify-center font-karla font-bold text-[11px] text-fondo"
+            >
+              {usuario.nombre.charAt(0)}{usuario.apellido.charAt(0)}
+            </Link>
+          ) : (
+            <Link
+              to="/iniciosesion"
+              className="px-3.5 py-2 rounded border border-borde font-karla font-bold text-[13px] text-texto hover:bg-elevado transition-colors"
+            >
+              Ingresar
+            </Link>
+          )}
 
           {/* Easter egg: el menú es una hamburguesa de verdad */}
           <button

@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { Navigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import Poster from "../components/Poster";
 import { LuDownload, LuMail, LuPencil, LuPhone, LuStar } from "react-icons/lu";
 import type { ProyectoPerfil, Experiencia } from "../utils/types";
+import useUsuarioContext from "../hooks/useUsuarioContext";
 
 const favoritos = [
   { id: 1, titulo: "Nocturno", color: "#2a0f1e" },
@@ -28,6 +30,11 @@ const herramientas = ["Premiere", "Audition"];
 
 export default function Cuenta() {
   const [tab, setTab] = useState("Perfil");
+  const { usuario, esMedios } = useUsuarioContext();
+
+  if (!usuario) {
+    return <Navigate to="/iniciosesion" />;
+  }
 
   return (
     <div className="min-h-screen bg-fondo text-texto flex flex-col">
@@ -37,20 +44,22 @@ export default function Cuenta() {
         {/* Cabecera */}
         <section className="px-16 py-10 flex items-center gap-6">
           <div className="w-24 h-24 rounded-full bg-coral flex items-center justify-center font-karla font-bold text-[34px] text-fondo shrink-0">
-            MS
+            {usuario.nombre.charAt(0)}{usuario.apellido.charAt(0)}
           </div>
 
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2.5">
               <h1 className="font-slab font-bold text-[26px] text-texto">
-                Martina Sosa
+                {usuario.nombre} {usuario.apellido}
               </h1>
-              <span className="px-2 py-0.75 rounded-full bg-magenta font-karla font-bold text-[11px] text-fondo">
-                Medios
-              </span>
+              {esMedios && (
+                <span className="px-2 py-0.75 rounded-full bg-magenta font-karla font-bold text-[11px] text-fondo">
+                  Medios
+                </span>
+              )}
             </div>
             <p className="font-karla text-sm text-texto-sec whitespace-pre">
-              @msosa  -  4to año - Dirección y guion
+              @{usuario.nombreUsuario}  -  4to año - Dirección y guion
             </p>
             <p className="font-karla text-sm leading-normal text-texto-sec max-w-125">
               Directora y guionista. Busco pasantía en producción audiovisual.
@@ -61,10 +70,12 @@ export default function Cuenta() {
                 <LuPencil className="w-4 h-4" />
                 Editar perfil
               </button>
-              <button className="px-4 py-2.5 rounded bg-texto flex items-center gap-2 font-karla font-bold text-sm text-fondo hover:opacity-90 transition-opacity cursor-pointer">
-                <LuDownload className="w-4 h-4" />
-                Descargar CV
-              </button>
+              {esMedios && (
+                <button className="px-4 py-2.5 rounded bg-texto flex items-center gap-2 font-karla font-bold text-sm text-fondo hover:opacity-90 transition-opacity cursor-pointer">
+                  <LuDownload className="w-4 h-4" />
+                  Descargar CV
+                </button>
+              )}
             </div>
           </div>
 
@@ -72,13 +83,15 @@ export default function Cuenta() {
 
           {/* Stats */}
           <div className="flex">
-            <div className="px-5.5 py-1 flex flex-col items-center gap-0.5">
-              <span className="font-slab font-bold text-xl text-texto">3</span>
-              <span className="font-karla font-bold text-[11px] tracking-[1.1px] text-apagado">
-                Proyectos
-              </span>
-            </div>
-            <div className="px-5.5 py-1 flex flex-col items-center gap-0.5 border-l border-borde">
+            {esMedios && (
+              <div className="px-5.5 py-1 flex flex-col items-center gap-0.5">
+                <span className="font-slab font-bold text-xl text-texto">3</span>
+                <span className="font-karla font-bold text-[11px] tracking-[1.1px] text-apagado">
+                  Proyectos
+                </span>
+              </div>
+            )}
+            <div className={`px-5.5 py-1 flex flex-col items-center gap-0.5 ${esMedios ? "border-l border-borde" : ""}`}>
               <span className="font-slab font-bold text-xl text-texto">23</span>
               <span className="font-karla font-bold text-[11px] tracking-[1.1px] text-apagado">
                 Reseñas
@@ -139,6 +152,8 @@ export default function Cuenta() {
                 ))}
               </div>
 
+              {esMedios && (
+              <>
               <div className="h-2" />
 
               {/* Proyectos */}
@@ -184,9 +199,12 @@ export default function Cuenta() {
                   </div>
                 ))}
               </div>
+              </>
+              )}
             </div>
 
             {/* Columna derecha: CV */}
+            {esMedios && (
             <aside className="w-90 shrink-0 p-5 rounded-md bg-superficie border border-borde flex flex-col gap-3.5">
               <span className="font-karla font-bold text-[11px] tracking-[1.1px] text-texto-sec">
                 Currículum
@@ -255,6 +273,7 @@ export default function Cuenta() {
                 +54 11 3028 5858
               </div>
             </aside>
+            )}
           </section>
         ) : (
           <section className="px-16 pt-8 pb-14">

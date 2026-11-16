@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
+import useUsuarioContext from '../hooks/useUsuarioContext';
 
 export type Compañeros = {
     nombreUser: string,
