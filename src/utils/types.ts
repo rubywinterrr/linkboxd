@@ -38,3 +38,29 @@ export type Usuario = {
   mail: string;
   tipo: "medios" | "outsider";
 };
+
+export type Integrante = {
+  id: number;
+  rol: string;
+  nombres: string[];
+};
+
+export type Comentario = {
+  id: number;
+  nombre: string;
+  iniciales: string;
+  color: string;
+  texto: string;
+};
+
+export type Resena = {
+  id: number;
+  nombre: string;
+  iniciales: string;
+  color: string;
+  puntaje: number;
+  fecha: string;
+  texto: string;
+  meGusta: number;
+  comentarios: Comentario[];
+};
