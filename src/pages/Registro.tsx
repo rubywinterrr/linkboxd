@@ -1,23 +1,24 @@
-import React, { useState, useContext } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
-import { UsuarioContext } from '../context/UsuarioContext';
+import useUsuarioContext from '../hooks/useUsuarioContext';
+import type { Usuario } from '../utils/types';
 
-export default function InicioSesionPaciente () {
+export default function Registro () {
     const [ nombre, setNombre ] = useState<string>('');
     const [ nombreUser, setNombreUser] = useState<string>('');
     const [ apellido, setApellido ] = useState<string>('');
     const [ mail, setMail ] = useState<string>(''); 
     const [ contraseña, setContraseña ] = useState<string>('');
-    const [ rol, setRol ] = useState<string>('Alumno de medios');
+    const [ rol, setRol ] = useState<Usuario['tipo']>('medios');
     const [ telefono, setTelefono ] = useState<string>('');
     const [ cargando, setCargando ] = useState<boolean>(false);
     const [ error, setError ] = useState<string | null>(null);
 
     const navigate = useNavigate();
 
-    const context = useContext(UsuarioContext);
+    const { registrarse } = useUsuarioContext();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -61,9 +62,7 @@ export default function InicioSesionPaciente () {
             localStorage.setItem('user', JSON.stringify(data.user));
             localStorage.setItem('userId', String(userId));
 
-            if (context) {
-                context.registrarse(data.user);
-            }
+            registrarse(data.user);
 
             navigate('/');
 
@@ -179,9 +178,9 @@ export default function InicioSesionPaciente () {
                         <div className="flex flex-wrap gap-3">
                             <button 
                                 type="button" 
-                                onClick={() => setRol('Alumno de medios')}
+                                onClick={() => setRol('medios')}
                                 className={`px-5 py-2 rounded-full font-medium text-sm transition-all ${
-                                    rol === 'Alumno de medios' 
+                                    rol === 'medios'
                                     ? 'bg-white text-black' 
                                     : 'border border-zinc-700 text-zinc-300 hover:bg-zinc-800'
                                 }`}
@@ -191,9 +190,9 @@ export default function InicioSesionPaciente () {
                             
                             <button 
                                 type="button" 
-                                onClick={() => setRol('Outsider')}
+                                onClick={() => setRol('outsider')}
                                 className={`px-5 py-2 rounded-full font-medium text-sm transition-all ${
-                                    rol === 'Outsider' 
+                                    rol === 'outsider'
                                     ? 'bg-white text-black' 
                                     : 'border border-zinc-700 text-zinc-300 hover:bg-zinc-800'
                                 }`}

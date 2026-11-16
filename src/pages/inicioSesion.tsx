@@ -1,19 +1,18 @@
-import React, { useState, useContext } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
-import { UsuarioContext } from '../context/UsuarioContext';
+import useUsuarioContext from '../hooks/useUsuarioContext';
 
-export default function InicioSesionPaciente () {
+export default function InicioSesion () {
     const [ nombreUser, setNombreUser] = useState<string>('');
     const [ contraseña, setContraseña ] = useState<string>('');
-    const [ rol, setRol ] = useState<string>('Alumno de medios');
     const [ cargando, setCargando ] = useState<boolean>(false);
     const [ error, setError ] = useState<string | null>(null);
 
     const navigate = useNavigate();
 
-    const context = useContext(UsuarioContext);
+    const { iniciarSesion } = useUsuarioContext();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -34,8 +33,7 @@ export default function InicioSesionPaciente () {
                 },
                 body: JSON.stringify({
                     nombreUser,
-                    password: contraseña,
-                    rol
+                    password: contraseña
                 }),
             });
 
@@ -54,9 +52,7 @@ export default function InicioSesionPaciente () {
             localStorage.setItem('user', JSON.stringify(data.user));
             localStorage.setItem('userId', String(userId));
 
-            if (context) {
-                context.iniciarSesion(data.user)
-            }
+            iniciarSesion(data.user);
 
             navigate('/');
 
@@ -74,10 +70,6 @@ export default function InicioSesionPaciente () {
 
     const handleBack = () => {
         navigate(-1);
-    }
-
-    const handlePrincipal = () => {
-        navigate ('/');
     }
 
     return (
@@ -128,35 +120,6 @@ export default function InicioSesionPaciente () {
                         </div>
                     </div>
 
-                    <div className="mt-12 pt-6">
-                        <div className="mb-3 text-sm font-semibold text-zinc-300">Rol</div>
-                        <div className="flex flex-wrap gap-3">
-                            <button 
-                                type="button" 
-                                onClick={() => setRol('Alumno de medios')}
-                                className={`px-5 py-2 rounded-full font-medium text-sm transition-all ${
-                                    rol === 'Alumno de medios' 
-                                    ? 'bg-white text-black' 
-                                    : 'border border-zinc-700 text-zinc-300 hover:bg-zinc-800'
-                                }`}
-                            >
-                                Alumno de medios
-                            </button>
-                            
-                            <button 
-                                type="button" 
-                                onClick={() => setRol('Outsider')}
-                                className={`px-5 py-2 rounded-full font-medium text-sm transition-all ${
-                                    rol === 'Outsider' 
-                                    ? 'bg-white text-black' 
-                                    : 'border border-zinc-700 text-zinc-300 hover:bg-zinc-800'
-                                }`}
-                            >
-                                Outsider
-                            </button>
-                        </div>
-                    </div>
-
                     <hr className="border-zinc-800 my-8" />
 
                     <div className="flex justify-between items-center">
@@ -171,9 +134,8 @@ export default function InicioSesionPaciente () {
                             type="submit" 
                             className="bg-white text-black px-6 py-2.5 rounded-md font-semibold text-sm disabled:opacity-50 hover:bg-zinc-200 transition-colors" 
                             disabled={cargando}
-                            onClick={handlePrincipal}
                         >
-                            {cargando ? 'Publicando...' : 'Publicar'}
+                            {cargando ? 'Ingresando...' : 'Ingresar'}
                         </button>
                     </div>
                     
