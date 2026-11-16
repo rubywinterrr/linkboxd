@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LuHeart, LuLogOut, LuPlus, LuSettings, LuStar, LuUser } from "react-icons/lu";
+import { LuLogOut, LuPlus, LuUser } from "react-icons/lu";
 
 interface MenuLateralProps {
   cerrarMenu: () => void;
@@ -10,17 +10,12 @@ export default function MenuLateral({ cerrarMenu }: MenuLateralProps) {
 
   const linksPrincipales = [
     { id: 1, label: "Inicio", path: "/" },
-    { id: 2, label: "Explorar", path: "/explorar" },
-    { id: 3, label: "Alumnos", path: "/alumnos" },
-    { id: 4, label: "ORT Medios", path: "/ort-medios" },
+    { id: 2, label: "ORT Medios", path: "https://campus.ort.edu.ar/secundaria/belgrano/medios", externo: true },
   ];
 
   const linksSecundarios = [
-    { id: 1, label: "Mis favoritos", path: "/cuenta", icono: <LuHeart className="w-4.5 h-4.5"  />, extra: "4/4" },
-    { id: 2, label: "Mis reseñas", path: "/cuenta", icono: <LuStar className="w-4.5 h-4.5" /> },
-    { id: 3, label: "Publicar proyecto", path: "/publicar", icono: <LuPlus className="w-4.5 h-4.5" /> },
-    { id: 4, label: "Mi perfil y CV", path: "/cuenta", icono: <LuUser className="w-4.5 h-4.5" /> },
-    { id: 5, label: "Configuración", path: "/configuracion", icono: <LuSettings className="w-4.5 h-4.5"/> },
+    { id: 1, label: "Publicar proyecto", path: "/publicar", icono: <LuPlus className="w-4.5 h-4.5" /> },
+    { id: 2, label: "Mi perfil y CV", path: "/cuenta", icono: <LuUser className="w-4.5 h-4.5" /> },
   ];
 
   return (
@@ -50,6 +45,22 @@ export default function MenuLateral({ cerrarMenu }: MenuLateralProps) {
         <div className="flex flex-col gap-2">
           {linksPrincipales.map((link) => {
             const activo = location.pathname === link.path;
+
+            if (link.externo) {
+              return (
+                <a
+                  key={link.id}
+                  href={link.path}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={cerrarMenu}
+                  className="px-3 py-2.5 rounded-lg font-slab font-bold text-[22px] text-texto hover:bg-elevado transition-colors"
+                >
+                  {link.label}
+                </a>
+              );
+            }
+
             return (
               <Link
                 key={link.id}
@@ -80,11 +91,6 @@ export default function MenuLateral({ cerrarMenu }: MenuLateralProps) {
                 {link.icono}
                 <span className="font-karla text-[15px]">{link.label}</span>
               </span>
-              {link.extra && (
-                <span className="font-karla font-bold text-[13px] text-apagado">
-                  {link.extra}
-                </span>
-              )}
             </Link>
           ))}
         </div>
@@ -97,7 +103,7 @@ export default function MenuLateral({ cerrarMenu }: MenuLateralProps) {
           onClick={cerrarMenu}
           className="px-3 py-2.5 rounded-lg flex items-center gap-2.5 text-apagado hover:bg-elevado transition-colors"
         >
-          <LuLogOut />
+          <LuLogOut className="w-4.5 h-4.5" />
           <span className="font-karla font-bold text-[15px]">Cerrar sesión</span>
         </Link>
       </aside>
