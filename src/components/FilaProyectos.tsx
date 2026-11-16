@@ -13,7 +13,7 @@ export default function FilaProyectos({ nombre, cuadrado, proyectos }: Fila) {
           className="flex items-center gap-1.5 font-karla font-bold text-[13px] text-texto-sec hover:text-texto transition-colors"
         >
           Ver todo
-          <LuArrowRight />
+          <LuArrowRight className="w-3.5 h-3.5" />
         </Link>
       </div>
 
@@ -34,7 +34,7 @@ export default function FilaProyectos({ nombre, cuadrado, proyectos }: Fila) {
               className={cuadrado ? "w-37 h-37" : "w-37 h-55.5"}
             />
             <div className="flex items-center gap-1 font-karla text-xs">
-              <LuStar className="w-2.75 h-2.75 text-coral" />
+              <LuStar className="w-2.75 h-2.75 fill-coral text-coral" />
               <span className="font-bold text-texto-sec">{proyecto.puntaje}</span>
               <span className="text-apagado">- {proyecto.anio}</span>
             </div>

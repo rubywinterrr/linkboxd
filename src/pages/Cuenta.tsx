@@ -58,11 +58,11 @@ export default function Cuenta() {
 
             <div className="flex gap-2.5 pt-1.5">
               <button className="px-4 py-2.5 rounded border border-borde flex items-center gap-2 font-karla font-bold text-sm text-texto hover:bg-elevado transition-colors cursor-pointer">
-                <LuPencil />
+                <LuPencil className="w-4 h-4" />
                 Editar perfil
               </button>
               <button className="px-4 py-2.5 rounded bg-texto flex items-center gap-2 font-karla font-bold text-sm text-fondo hover:opacity-90 transition-opacity cursor-pointer">
-                <LuDownload />
+                <LuDownload className="w-4 h-4" />
                 Descargar CV
               </button>
             </div>
@@ -178,7 +178,7 @@ export default function Cuenta() {
                     </div>
                     <div className="flex-1" />
                     <div className="flex items-center gap-1.25 font-karla font-bold text-[13px] text-texto-sec">
-                      <LuStar className="w-3.25 h-3.25 text-coral" />
+                      <LuStar className="w-3.25 h-3.25 fill-coral text-coral" />
                       {proyecto.puntaje}
                     </div>
                   </div>
