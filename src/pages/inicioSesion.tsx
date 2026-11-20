@@ -54,7 +54,7 @@ export default function InicioSesion () {
 
             iniciarSesion(data.user);
 
-            navigate('/');
+            navigate('/inicio');
 
         } catch (err: unknown) {
             console.error('Error en login:', err);

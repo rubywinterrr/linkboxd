@@ -64,7 +64,7 @@ export default function Registro () {
 
             registrarse(data.user);
 
-            navigate('/');
+            navigate('/inicio');
 
         } catch (err: unknown) {
             console.error('Error en registrarse:', err);

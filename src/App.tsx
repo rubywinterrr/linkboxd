@@ -7,6 +7,7 @@ import Publicar from './pages/Publicar'
 import Proyecto from "./pages/Proyecto";
 import PerfilAlumno from "./pages/PerfilAlumno";
 import Proximamente from "./pages/Proximamente";
+import Landing from './pages/landing'
 import { UsuarioProvider } from "./context/UsuarioProvider";
 
 function App() {
@@ -14,7 +15,8 @@ function App() {
     <UsuarioProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Inicio />} />
+          <Route path="/" element={<Landing />} />
+          <Route path="/inicio" element={<Inicio />} />
           <Route path="/cuenta" element={<Cuenta />} />
           <Route path="/iniciosesion" element={<InicioSesion />} />
           <Route path="/registro" element={<Registro />} />
