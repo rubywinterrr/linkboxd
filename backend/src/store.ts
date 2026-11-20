@@ -15,6 +15,8 @@ function emptyDatabase(): DatabaseState {
     favorites: [],
     ratings: [],
     reviews: [],
+    reviewLikes: [],
+    reviewReplies: [],
     sessions: [],
   };
 }
@@ -29,7 +31,9 @@ function isDatabaseState(value: unknown): value is DatabaseState {
     "ratings",
     "reviews",
     "sessions",
-  ].every((key) => Array.isArray(record[key]));
+  ].every((key) => Array.isArray(record[key])) &&
+    (record.reviewLikes === undefined || Array.isArray(record.reviewLikes)) &&
+    (record.reviewReplies === undefined || Array.isArray(record.reviewReplies));
 }
 
 function clone<T>(value: T): T {
@@ -48,6 +52,15 @@ export class JsonStore {
       const parsed: unknown = JSON.parse(contents);
       if (!isDatabaseState(parsed)) {
         throw new Error("El archivo de datos no tiene el formato esperado");
+      }
+      parsed.reviewLikes ??= [];
+      parsed.reviewReplies ??= [];
+      for (const user of parsed.users) {
+        user.profile.cv ??= null;
+      }
+      for (const project of parsed.projects) {
+        project.views ??= 0;
+        project.coverFile ??= null;
       }
       this.state = parsed;
     } catch (error) {

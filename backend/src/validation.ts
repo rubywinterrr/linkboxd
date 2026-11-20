@@ -50,6 +50,26 @@ export const projectSchema = z.object({
     }),
 });
 
+export const projectUpdateSchema = projectSchema.partial();
+
+const experienceSchema = z.object({
+  id: z.string().trim().min(1).max(80).optional(),
+  year: z.number().int().min(1900).max(2200),
+  position: trimmedText(120),
+  place: trimmedText(160),
+});
+
+export const profileSchema = z.object({
+  bio: z.string().trim().max(1000).optional(),
+  year: z.number().int().min(1).max(12).nullable().optional(),
+  specialty: z.string().trim().max(120).optional(),
+  phone: z.string().trim().max(40).nullable().optional(),
+  tools: z.array(trimmedText(60)).max(30).optional(),
+  experiences: z.array(experienceSchema).max(50).optional(),
+}).refine((value) => Object.keys(value).length > 0, {
+  message: "Ingresá al menos un dato para actualizar",
+});
+
 export const ratingSchema = z.object({
   value: z.number().int().min(1).max(5),
 });
@@ -57,6 +77,14 @@ export const ratingSchema = z.object({
 export const reviewSchema = z.object({
   value: z.number().int().min(1).max(5),
   text: trimmedText(3000),
+});
+
+export const reviewReplySchema = z.object({
+  text: trimmedText(2000),
+});
+
+export const teamCommentSchema = z.object({
+  comment: z.string().trim().max(1000),
 });
 
 export function parseOrThrow<T>(

@@ -22,7 +22,9 @@ function App() {
           <Route path="/registro" element={<Registro />} />
           <Route path="/publicar" element={<Publicar />} />
           <Route path="/proyecto" element={<Proyecto />} />
+          <Route path="/proyecto/:projectId" element={<Proyecto />} />
           <Route path="/perfil" element={<PerfilAlumno />} />
+          <Route path="/perfil/:userId" element={<PerfilAlumno />} />
           <Route path="*" element={<Proximamente />} />
         </Routes>
       </BrowserRouter>

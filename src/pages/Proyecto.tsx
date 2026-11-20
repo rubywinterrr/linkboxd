@@ -1,483 +1,296 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import {
-  LuEye,
-  LuHeart,
-  LuMessageSquare,
-  LuShare,
-  LuPlay,
-} from "react-icons/lu";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
-import Poster from "../components/Poster";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { LuEye, LuHeart, LuMessageSquare, LuPlay } from "react-icons/lu";
 import Avatar from "../components/Avatar";
 import Estrellas from "../components/Estrellas";
-import type { Integrante, Resena } from "../utils/types";
+import Footer from "../components/Footer";
+import Navbar from "../components/Navbar";
+import Poster from "../components/Poster";
+import useUsuarioContext from "../hooks/useUsuarioContext";
+import { apiRequest, type ApiProject, type ApiReview, type ApiUser } from "../utils/api";
 
-const etiquetas = ["Cortometraje", "Drama", "14 min", "4to Medios D"];
+type ProjectDetail = {
+  project: ApiProject;
+  author: ApiUser;
+  team: (ApiProject["equipo"][number] & { user: ApiUser })[];
+  ratingAverage: number;
+  ratingCount: number;
+  ratingHistogram: number[];
+  reviewCount: number;
+  favoriteCount: number;
+  viewCount: number;
+  isFavorite: boolean;
+  myRating: number | null;
+};
 
-const equipo: Integrante[] = [
-  { id: 1, rol: "Dirección", nombres: ["Martina Sosa"] },
-  { id: 2, rol: "Guion", nombres: ["Martina Sosa", "Bruno Sosa"] },
-  { id: 3, rol: "Fotografía", nombres: ["Joaquín Sosa"] },
-  { id: 4, rol: "Sonido", nombres: ["Tomás Sosa"] },
-  { id: 5, rol: "Montaje", nombres: ["Bruno Sosa"] },
-  { id: 6, rol: "Arte", nombres: ["Sosa Sosa"] },
-];
+const posterColors = ["#ff2db4", "#1c1921", "#ff8a6b", "#2a0f1e", "#8b3dff"];
 
-const detalles = [
-  { id: 1, label: "Tipo", valor: "Cortometraje" },
-  { id: 2, label: "Género", valor: "Drama" },
-  { id: 3, label: "Duración", valor: "14 min" },
-  { id: 4, label: "Curso", valor: "4to Medios D" },
-  { id: 5, label: "Año", valor: "2025" },
-];
-
-const comentariosEquipo = [
-  {
-    id: 1,
-    nombre: "Martina Sosa",
-    iniciales: "MS",
-    color: "#ff8a6b",
-    rol: "Dirección",
-    texto:
-      "Filmamos todo en una noche en un mansion real. Fue mi primera vez dirigiendo actores y armando un plan de rodaje completo.",
-  },
-  {
-    id: 2,
-    nombre: "Tomás Sosa",
-    iniciales: "TR",
-    color: "#ff5c9a",
-    rol: "Sonido",
-    texto:
-      "Grabar el ruido ambiente del jardín fue clave; me parece una escena clave del corto.",
-  },
-];
-
-const resenasIniciales: Resena[] = [
-  {
-    id: 1,
-    nombre: "Lucía Sosarda",
-    iniciales: "LP",
-    color: "#ff2db4",
-    puntaje: 5,
-    fecha: "hace 2 días",
-    texto: "Me voló la cabezaaaaaa.",
-    meGusta: 24,
-    comentarios: [
-      { id: 1, nombre: "Martina Sosa", iniciales: "MS", color: "#ff8a6b", texto: "Gracias Lu!!" },
-      { id: 2, nombre: "Nico Sosardo", iniciales: "NF", color: "#1c1921", texto: "Coincidoooooo" },
-    ],
-  },
-  {
-    id: 2,
-    nombre: "Valen Sosardo",
-    iniciales: "VR",
-    color: "#f6f2ee",
-    puntaje: 4,
-    fecha: "hace 1 semana",
-    texto: "Muy linda la dirección de arte, genios los Sosa",
-    meGusta: 11,
-    comentarios: [],
-  },
-  {
-    id: 3,
-    nombre: "Sosardo Junior",
-    iniciales: "NF",
-    color: "#1c1921",
-    puntaje: 4,
-    fecha: "hace 2 semanas",
-    texto: "Pero que increible corto (emoji de aplauso no se no la encontre)",
-    meGusta: 8,
-    comentarios: [],
-  },
-];
-
-// Altura de cada barrita del gráfico de puntajes (de 0.5 a 5 estrellas)
-const barras = [3, 3, 5, 6, 10, 14, 26, 44, 52, 36];
+function initials(user: ApiUser): string {
+  return `${user.nombre[0] ?? ""}${user.apellido[0] ?? ""}`.toUpperCase();
+}
 
 export default function Proyecto() {
-  const [enFavoritos, setEnFavoritos] = useState(true);
-  const [miPuntaje, setMiPuntaje] = useState(4);
-  const [tab, setTab] = useState("Equipo");
-  const [orden, setOrden] = useState("Populares");
-  const [resenas, setResenas] = useState<Resena[]>(resenasIniciales);
-  const [textoResena, setTextoResena] = useState("");
-  const [puntajeResena, setPuntajeResena] = useState(0);
+  const { projectId } = useParams();
+  const navigate = useNavigate();
+  const { usuario, cargando: cargandoSesion } = useUsuarioContext();
+  const [fallbackId, setFallbackId] = useState("");
+  const id = projectId ?? fallbackId;
+  const [detalle, setDetalle] = useState<ProjectDetail | null>(null);
+  const [resenas, setResenas] = useState<ApiReview[]>([]);
+  const [texto, setTexto] = useState("");
+  const [puntaje, setPuntaje] = useState(0);
+  const [respuesta, setRespuesta] = useState<Record<string, string>>({});
+  const [orden, setOrden] = useState<"Recientes" | "Populares">("Recientes");
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [loadedId, setLoadedId] = useState("");
+  const loadingIds = useRef(new Set<string>());
 
-  const publicarResena = () => {
-    if (textoResena.trim() === "" || puntajeResena === 0) return;
+  useEffect(() => {
+    if (projectId) return;
+    let active = true;
+    apiRequest<{ data: ApiProject[] }>("/projects?limit=1")
+      .then(({ data }) => {
+        if (!active) return;
+        if (!data[0]) throw new Error("Todavía no hay proyectos para mostrar");
+        setFallbackId(data[0].id);
+        navigate(`/proyecto/${data[0].id}`, { replace: true });
+      })
+      .catch((cause: unknown) => {
+        if (active) {
+          setError(cause instanceof Error ? cause.message : "No se pudo encontrar el proyecto");
+          setCargando(false);
+        }
+      });
+    return () => { active = false; };
+  }, [navigate, projectId]);
 
-    const nueva: Resena = {
-      id: resenas.length + 1,
-      nombre: "Martina Sosa",
-      iniciales: "MS",
-      color: "#ff8a6b",
-      puntaje: puntajeResena,
-      fecha: "recién",
-      texto: textoResena,
-      meGusta: 0,
-      comentarios: [],
-    };
+  useEffect(() => {
+    if (!id || loadingIds.current.has(id)) return;
+    loadingIds.current.add(id);
+    Promise.all([
+      apiRequest<ProjectDetail>(`/projects/${encodeURIComponent(id)}`),
+      apiRequest<{ data: ApiReview[] }>(`/projects/${encodeURIComponent(id)}/reviews`),
+    ])
+      .then(([project, reviewResult]) => {
+        setDetalle(project);
+        setResenas(reviewResult.data);
+      })
+      .catch((cause: unknown) => {
+        setError(cause instanceof Error ? cause.message : "No se pudo cargar el proyecto");
+      })
+      .finally(() => {
+        loadingIds.current.delete(id);
+        setLoadedId(id);
+        setCargando(false);
+      });
+  }, [id]);
 
-    setResenas([nueva, ...resenas]);
-    setTextoResena("");
-    setPuntajeResena(0);
+  const resenasOrdenadas = useMemo(() => (
+    [...resenas].sort((a, b) => orden === "Populares"
+      ? b.likeCount - a.likeCount
+      : b.createdAt.localeCompare(a.createdAt))
+  ), [orden, resenas]);
+
+  const toggleFavorito = async () => {
+    if (!detalle) return;
+    setError(null);
+    try {
+      const adding = !detalle.isFavorite;
+      await apiRequest<void>(`/projects/${detalle.project.id}/favorite`, {
+        method: adding ? "PUT" : "DELETE",
+      });
+      setDetalle((current) => current ? {
+        ...current,
+        isFavorite: adding,
+        favoriteCount: current.favoriteCount + (adding ? 1 : -1),
+      } : current);
+    } catch (cause: unknown) {
+      setError(cause instanceof Error ? cause.message : "No se pudo actualizar favoritos");
+    }
   };
 
-  // "Recientes" muestra primero la última; "Populares" ordena por me gusta
-  const resenasOrdenadas =
-    orden === "Populares"
-      ? [...resenas].sort((a, b) => b.meGusta - a.meGusta)
-      : resenas;
+  const guardarPuntaje = async (value: number) => {
+    if (!detalle) return;
+    setError(null);
+    try {
+      await apiRequest(`/projects/${detalle.project.id}/rating`, {
+        method: "PUT",
+        body: JSON.stringify({ value }),
+      });
+      setDetalle((current) => current ? { ...current, myRating: value } : current);
+    } catch (cause: unknown) {
+      setError(cause instanceof Error ? cause.message : "No se pudo guardar el puntaje");
+    }
+  };
+
+  const publicarResena = async () => {
+    if (!detalle || !texto.trim() || puntaje < 1) return;
+    setError(null);
+    try {
+      const { review } = await apiRequest<{ review: ApiReview }>(
+        `/projects/${detalle.project.id}/reviews`,
+        { method: "POST", body: JSON.stringify({ value: puntaje, text: texto }) },
+      );
+      setResenas((current) => [review, ...current]);
+      setDetalle((current) => current ? { ...current, reviewCount: current.reviewCount + 1 } : current);
+      setTexto("");
+      setPuntaje(0);
+    } catch (cause: unknown) {
+      setError(cause instanceof Error ? cause.message : "No se pudo publicar la reseña");
+    }
+  };
+
+  const toggleMeGusta = async (review: ApiReview) => {
+    try {
+      const result = await apiRequest<{ likeCount: number; isLiked: boolean }>(
+        `/reviews/${review.id}/like`,
+        { method: review.isLiked ? "DELETE" : "PUT" },
+      );
+      setResenas((current) => current.map((item) => item.id === review.id
+        ? { ...item, ...result }
+        : item));
+    } catch (cause: unknown) {
+      setError(cause instanceof Error ? cause.message : "No se pudo actualizar el me gusta");
+    }
+  };
+
+  const responder = async (review: ApiReview) => {
+    const text = respuesta[review.id]?.trim();
+    if (!text) return;
+    try {
+      const { reply } = await apiRequest<{ reply: ApiReview["replies"][number] }>(
+        `/reviews/${review.id}/replies`,
+        { method: "POST", body: JSON.stringify({ text }) },
+      );
+      setResenas((current) => current.map((item) => item.id === review.id
+        ? { ...item, replies: [...item.replies, reply] }
+        : item));
+      setRespuesta((current) => ({ ...current, [review.id]: "" }));
+    } catch (cause: unknown) {
+      setError(cause instanceof Error ? cause.message : "No se pudo responder");
+    }
+  };
+
+  if (cargando || (id && loadedId !== id) || (cargandoSesion && !detalle)) {
+    return <><Navbar /><p className="p-16 text-texto-sec">Cargando proyecto...</p><Footer /></>;
+  }
+  if (!detalle) {
+    return <><Navbar /><p role="alert" className="p-16 text-red-400">{error ?? "No se encontró el proyecto"}</p><Footer /></>;
+  }
+
+  const { project } = detalle;
+  const colorIndex = project.titulo.split("").reduce((sum, char) => sum + char.charCodeAt(0), 0) % posterColors.length;
+  const color = posterColors[colorIndex] ?? "#ff2db4";
 
   return (
     <div className="min-h-screen bg-fondo text-texto flex flex-col">
       <Navbar />
-
       <main className="w-full max-w-7xl mx-auto flex-1">
-        <section className="px-16 py-10 flex items-start gap-12">
-          {/* Columna izquierda: póster y acciones */}
-          <div className="w-57.5 shrink-0 flex flex-col gap-3.5">
-            <Poster
-              titulo="Lo que queda"
-              color="#ff2db4"
-              tituloArriba
-              className="w-57.5 h-86.25"
-            />
-
+        <section className="px-8 md:px-16 py-10 flex flex-col md:flex-row items-start gap-8 md:gap-12">
+          <div className="w-56 shrink-0 flex flex-col gap-3.5">
+            <Poster titulo={project.titulo} color={color} tituloArriba className="w-56 h-84" />
             <div className="flex gap-4 font-karla font-bold text-xs text-apagado">
-              <span className="flex items-center gap-1.25">
-                <LuEye className="w-3.5 h-3.5" /> 1,2 k
-              </span>
-              <span className="flex items-center gap-1.25">
-                <LuHeart className="w-3.5 h-3.5" /> 312
-              </span>
-              <span className="flex items-center gap-1.25">
-                <LuMessageSquare className="w-3.5 h-3.5" /> 128
-              </span>
+              <span className="flex items-center gap-1"><LuEye /> {detalle.viewCount}</span>
+              <span className="flex items-center gap-1"><LuHeart /> {detalle.favoriteCount}</span>
+              <span className="flex items-center gap-1"><LuMessageSquare /> {detalle.reviewCount}</span>
             </div>
-
             <div className="py-1 rounded-md bg-superficie border border-borde flex flex-col">
-              <button
-                onClick={() => setEnFavoritos(!enFavoritos)}
-                className="px-4 py-3 border-b border-borde flex items-center gap-2.5 cursor-pointer"
-              >
-                <LuHeart
-                  className={`w-4 h-4 ${enFavoritos ? "fill-magenta text-magenta" : "text-texto-sec"
-                    }`}
-                />
-                <span className="font-karla font-bold text-sm text-texto">
-                  {enFavoritos ? "En tus favoritos" : "Agregar a favoritos"}
-                </span>
-                <span className="flex-1" />
-                <span className="font-karla text-xs text-apagado">
-                  {enFavoritos ? "3/4" : "2/4"}
-                </span>
+              <button onClick={toggleFavorito} className="px-4 py-3 border-b border-borde flex items-center gap-2.5 text-left">
+                <LuHeart className={detalle.isFavorite ? "fill-magenta text-magenta" : "text-texto-sec"} />
+                <span className="font-karla font-bold text-sm">{detalle.isFavorite ? "En tus favoritos" : "Agregar a favoritos"}</span>
               </button>
-
-              <div className="px-4 py-3 border-b border-borde flex items-center gap-2.5">
-                <span className="font-karla font-bold text-sm text-texto">
-                  Tu puntaje
-                </span>
-                <span className="flex-1" />
-                <Estrellas
-                  puntaje={miPuntaje}
-                  className="w-4 h-4"
-                  alElegir={setMiPuntaje}
-                />
+              <div className="px-4 py-3 flex items-center justify-between">
+                <span className="font-karla font-bold text-sm">Tu puntaje</span>
+                <Estrellas puntaje={detalle.myRating ?? 0} className="w-4 h-4" alElegir={guardarPuntaje} />
               </div>
-
-              <button className="px-4 py-3 flex items-center gap-2.5 cursor-pointer">
-                <LuShare className="w-4 h-4 text-texto-sec" />
-                <span className="font-karla font-bold text-sm text-texto">
-                  Compartir
-                </span>
-              </button>
             </div>
-
-            <a
-              href="https://www.youtube.com/@ORTMedios"
-              target="_blank"
-              className="w-full px-4 py-2.5 rounded bg-texto flex items-center justify-center gap-2 font-karla font-bold text-sm text-fondo hover:opacity-90 transition-opacity"
-            >
-              <LuPlay className="w-4 h-4 fill-fondo" />
-              Ver en YouTube
+            <a href={project.url} target="_blank" rel="noreferrer" className="px-4 py-2.5 rounded bg-texto flex items-center justify-center gap-2 font-karla font-bold text-sm text-fondo">
+              <LuPlay /> Ver proyecto
             </a>
           </div>
 
-          {/* Columna del medio: info */}
           <div className="flex-1 flex flex-col gap-4">
             <div className="flex items-baseline gap-3">
-              <h1 className="font-slab font-bold text-[32px] text-texto">
-                Lo que queda
-              </h1>
-              <span className="font-karla text-lg text-texto-sec">2025</span>
+              <h1 className="font-slab font-bold text-[32px]">{project.titulo}</h1>
+              <span className="font-karla text-lg text-texto-sec">{project.anio}</span>
             </div>
-
             <p className="font-karla text-base text-texto-sec">
-              Dirigido por{" "}
-              <Link to="/cuenta" className="font-bold text-texto hover:underline">
-                Martina Sosa
-              </Link>
+              Publicado por <Link to={`/perfil/${detalle.author.id}`} className="font-bold text-texto hover:underline">@{detalle.author.nombreUsuario}</Link>
             </p>
-
-            <div className="flex gap-1.5">
-              {etiquetas.map((etiqueta) => (
-                <span
-                  key={etiqueta}
-                  className="px-2.5 py-1.25 rounded-full bg-elevado font-karla font-bold text-xs text-texto-sec"
-                >
-                  {etiqueta}
-                </span>
-              ))}
+            <div className="flex flex-wrap gap-1.5">
+              {[project.tipo, project.genero, project.duracionMinutos ? `${project.duracionMinutos} min` : null]
+                .filter(Boolean)
+                .map((label) => <span key={label} className="px-2.5 py-1.25 rounded-full bg-elevado font-karla font-bold text-xs text-texto-sec">{label}</span>)}
             </div>
+            <p className="font-karla text-base leading-[1.6] text-texto-sec">{project.descripcion}</p>
 
-            <p className="font-karla text-base leading-[1.6] text-texto-sec">
-              Los Sosa son una familia extraña, y luego de que un abuelo lejano
-              fallezca y deje una fortuna sin declarar a quien, como se logra
-              mantener la union? dea
-            </p>
-
-            {/* Tabs Equipo / Detalles */}
-            <div className="flex gap-6 border-b border-borde">
-              {["Equipo", "Detalles"].map((item) => (
-                <button
-                  key={item}
-                  onClick={() => setTab(item)}
-                  className="flex flex-col gap-2 cursor-pointer"
-                >
-                  <span
-                    className={`font-karla font-bold text-sm ${tab === item ? "text-texto" : "text-texto-sec"
-                      }`}
-                  >
-                    {item}
-                  </span>
-                  <span
-                    className={`h-0.5 w-full ${tab === item ? "bg-magenta" : ""}`}
-                  />
-                </button>
-              ))}
-            </div>
-
-            {tab === "Equipo" ? (
-              <div className="flex flex-col gap-2.5">
-                {equipo.map((integrante) => (
-                  <div key={integrante.id} className="flex items-center gap-2">
-                    <span className="w-27.5 font-karla text-[13px] text-apagado">
-                      {integrante.rol}
-                    </span>
-                    {integrante.nombres.map((nombre) => (
-                      <Link
-                        key={nombre}
-                        to="/perfil"
-                        className="px-2.5 py-1.25 rounded bg-elevado font-karla font-medium text-[13px] text-texto hover:bg-borde transition-colors"
-                      >
-                        {nombre}
-                      </Link>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2.5">
-                {detalles.map((detalle) => (
-                  <div key={detalle.id} className="flex items-center gap-2">
-                    <span className="w-27.5 font-karla text-[13px] text-apagado">
-                      {detalle.label}
-                    </span>
-                    <span className="font-karla font-medium text-[13px] text-texto">
-                      {detalle.valor}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Comentarios del equipo */}
-            <div className="flex flex-col gap-2.5">
-              <span className="font-karla font-bold text-[11px] tracking-[1.1px] text-texto-sec">
-                Comentarios del equipo
-              </span>
-              <div className="h-px w-full bg-borde" />
-            </div>
-
-            {comentariosEquipo.map((comentario) => (
-              <div key={comentario.id} className="flex items-start gap-3">
-                <Avatar iniciales={comentario.iniciales} color={comentario.color} />
-                <div className="flex-1 flex flex-col gap-1.5">
-                  <div className="flex items-center gap-2">
-                    <span className="font-karla font-bold text-sm text-texto">
-                      {comentario.nombre}
-                    </span>
-                    <span className="px-2.5 py-1.25 rounded-full bg-elevado font-karla font-bold text-xs text-texto-sec">
-                      {comentario.rol}
-                    </span>
-                  </div>
-                  <p className="font-karla text-sm leading-[1.55] text-texto-sec">
-                    {comentario.texto}
-                  </p>
-                </div>
+            <h2 className="font-karla font-bold text-sm border-b border-borde pb-2">Equipo</h2>
+            {detalle.team.map((member) => (
+              <div key={member.userId} className="flex flex-wrap items-center gap-2">
+                <Link to={`/perfil/${member.user.id}`} className="font-karla font-bold text-sm hover:underline">
+                  {member.user.nombre} {member.user.apellido}
+                </Link>
+                {member.roles.map((role) => <span key={role} className="px-2 py-1 rounded bg-elevado text-xs text-texto-sec">{role}</span>)}
+                {member.comment && <p className="w-full text-sm text-texto-sec">{member.comment}</p>}
               </div>
             ))}
+
+            <div className="mt-4 flex items-center gap-3">
+              <span className="font-karla text-sm text-texto-sec">Puntaje promedio</span>
+              <strong className="font-slab text-2xl">{detalle.ratingAverage.toFixed(1)}</strong>
+              <span className="text-sm text-apagado">({detalle.ratingCount} puntajes)</span>
+            </div>
           </div>
-
-          {/* Columna derecha: puntaje y publicado por */}
-          <aside className="w-62.5 shrink-0 flex flex-col gap-6">
-            <div className="flex flex-col gap-2.5">
-              <span className="font-karla font-bold text-[11px] tracking-[1.1px] text-apagado">
-                Puntaje promedio
-              </span>
-              <div className="flex items-center gap-2.5">
-                <span className="font-slab font-bold text-[28px] text-texto">
-                  4.6
-                </span>
-                <Estrellas puntaje={5} className="w-3.5 h-3.5" />
-              </div>
-              <div className="flex items-end gap-0.75">
-                {barras.map((alto, index) => (
-                  <div
-                    key={index}
-                    style={{ height: alto }}
-                    className={`w-5 rounded-[1px] ${index >= 7 ? "bg-coral" : "bg-elevado"
-                      }`}
-                  />
-                ))}
-              </div>
-              <span className="font-karla text-[13px] text-apagado">
-                128 reseñas
-              </span>
-            </div>
-
-            <div className="flex flex-col gap-2.5">
-              <span className="font-karla font-bold text-[11px] tracking-[1.1px] text-apagado">
-                Publicado por
-              </span>
-              <Link to="/cuenta" className="flex items-center gap-2.5">
-                <Avatar iniciales="MS" color="#ff8a6b" className="w-7 h-7 text-[10px]" />
-                <span className="font-karla font-bold text-[13px] text-texto">
-                  @msosa
-                </span>
-              </Link>
-            </div>
-          </aside>
         </section>
 
-        {/* Reseñas */}
-        <section className="px-16 pt-2 pb-12 flex flex-col gap-1">
-          <div className="py-3 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <h2 className="font-slab font-semibold text-xl text-texto">
-                Reseñas
-              </h2>
-              <span className="font-karla text-[13px] text-apagado">
-                {resenas.length}
-              </span>
-            </div>
-            <div className="flex gap-4.5">
-              {["Populares", "Recientes"].map((item) => (
-                <button
-                  key={item}
-                  onClick={() => setOrden(item)}
-                  className={`font-karla font-bold text-[13px] cursor-pointer ${orden === item ? "text-texto" : "text-texto-sec"
-                    }`}
-                >
-                  {item}
-                </button>
+        <section className="px-8 md:px-16 pb-12 flex flex-col gap-3">
+          {error && <p role="alert" className="text-sm text-red-400">{error}</p>}
+          <div className="flex items-center justify-between">
+            <h2 className="font-slab font-semibold text-xl">Reseñas <span className="text-sm text-apagado">{resenas.length}</span></h2>
+            <div className="flex gap-4">
+              {(["Populares", "Recientes"] as const).map((item) => (
+                <button key={item} onClick={() => setOrden(item)} className={orden === item ? "font-bold" : "text-texto-sec"}>{item}</button>
               ))}
             </div>
           </div>
-
-          <div className="h-px w-full bg-borde" />
-
-          {/* Escribir reseña */}
-          <div className="py-4">
-            <div className="px-3.5 py-3 rounded-md bg-superficie border border-borde flex items-center gap-3.5">
-              <Avatar iniciales="MS" color="#ff8a6b" />
-              <input
-                type="text"
-                value={textoResena}
-                onChange={(e) => setTextoResena(e.target.value)}
-                placeholder="Escribí tu reseña de Lo que queda…"
-                className="flex-1 bg-transparent outline-none font-karla text-[15px] text-texto placeholder:text-apagado"
-              />
-              <Estrellas
-                puntaje={puntajeResena}
-                className="w-4.5 h-4.5"
-                alElegir={setPuntajeResena}
-              />
-              <button
-                onClick={publicarResena}
-                className="px-4 py-2.5 rounded bg-texto font-karla font-bold text-sm text-fondo hover:opacity-90 transition-opacity cursor-pointer"
-              >
-                Publicar
-              </button>
+          {usuario && (
+            <div className="py-3 flex flex-wrap items-center gap-3 border-b border-borde">
+              <input value={texto} onChange={(event) => setTexto(event.target.value)} placeholder={`Escribí tu reseña de ${project.titulo}`} className="flex-1 min-w-48 bg-transparent outline-none" />
+              <Estrellas puntaje={puntaje} alElegir={setPuntaje} />
+              <button onClick={publicarResena} className="px-4 py-2 rounded bg-texto text-fondo font-bold">Publicar</button>
             </div>
-          </div>
-
-          {resenasOrdenadas.map((resena) => (
-            <div
-              key={resena.id}
-              className="py-4.5 border-b border-borde flex items-start gap-3.5"
-            >
-              <Avatar iniciales={resena.iniciales} color={resena.color} />
-
-              <div className="flex-1 flex flex-col gap-2">
-                <div className="flex items-center gap-2.5">
-                  <span className="font-karla text-[13px] text-apagado">
-                    Reseña de{" "}
-                    <span className="font-bold text-texto">{resena.nombre}</span>
-                  </span>
-                  <Estrellas puntaje={resena.puntaje} />
-                  <span className="font-karla text-xs text-apagado">
-                    {resena.fecha}
-                  </span>
+          )}
+          {resenasOrdenadas.map((review) => (
+            <article key={review.id} className="py-4 border-b border-borde flex gap-3">
+              <Avatar iniciales={initials(review.user)} color={posterColors[0] ?? "#ff2db4"} />
+              <div className="flex-1 space-y-2">
+                <div className="flex flex-wrap items-center gap-2 text-sm text-texto-sec">
+                  <span className="font-bold text-texto">{review.user.nombre} {review.user.apellido}</span>
+                  <Estrellas puntaje={review.value} />
+                  <time>{new Date(review.createdAt).toLocaleDateString()}</time>
                 </div>
-
-                <p className="font-karla text-[15px] leading-[1.55] text-texto">
-                  {resena.texto}
-                </p>
-
-                <div className="flex items-center gap-4.5 font-karla font-bold text-xs text-texto-sec">
-                  <span className="flex items-center gap-1.5">
-                    <LuHeart className="w-3.5 h-3.5" /> {resena.meGusta} me gusta
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <LuMessageSquare className="w-3.5 h-3.5" />{" "}
-                    {resena.comentarios.length} comentarios
-                  </span>
-                  <button className="cursor-pointer hover:text-texto">
-                    Responder
-                  </button>
-                </div>
-
-                {resena.comentarios.length > 0 && (
-                  <div className="pl-4 pt-1.5 border-l-2 border-borde flex flex-col gap-3">
-                    {resena.comentarios.map((comentario) => (
-                      <div key={comentario.id} className="flex items-start gap-2.5">
-                        <Avatar
-                          iniciales={comentario.iniciales}
-                          color={comentario.color}
-                          className="w-6.5 h-6.5 text-[9px]"
-                        />
-                        <div className="flex flex-col gap-0.75">
-                          <span className="font-karla font-bold text-[13px] text-texto">
-                            {comentario.nombre}
-                          </span>
-                          <p className="font-karla text-sm leading-normal text-texto-sec">
-                            {comentario.texto}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+                <p>{review.text}</p>
+                <button onClick={() => toggleMeGusta(review)} className={review.isLiked ? "text-magenta" : "text-texto-sec"}>
+                  <LuHeart className="inline mr-1" />{review.likeCount} me gusta
+                </button>
+                {review.replies.map((reply) => (
+                  <p key={reply.id} className="ml-4 border-l border-borde pl-3 text-sm text-texto-sec">
+                    <strong>{reply.user.nombre}:</strong> {reply.text}
+                  </p>
+                ))}
+                {usuario && (
+                  <div className="flex gap-2">
+                    <input value={respuesta[review.id] ?? ""} onChange={(event) => setRespuesta((current) => ({ ...current, [review.id]: event.target.value }))} placeholder="Responder..." className="flex-1 bg-transparent border-b border-borde outline-none text-sm" />
+                    <button onClick={() => responder(review)} className="text-sm font-bold">Responder</button>
                   </div>
                 )}
               </div>
-            </div>
+            </article>
           ))}
+          {!resenas.length && <p className="py-6 text-texto-sec">Todavía no hay reseñas.</p>}
         </section>
       </main>
-
       <Footer />
     </div>
   );

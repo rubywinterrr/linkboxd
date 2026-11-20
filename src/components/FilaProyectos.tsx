@@ -9,7 +9,7 @@ export default function FilaProyectos({ nombre, cuadrado, proyectos }: Fila) {
       <div className="flex items-center justify-between">
         <h2 className="font-slab font-semibold text-xl text-texto">{nombre}</h2>
         <Link
-          to="/explorar"
+          to={`/inicio?type=${encodeURIComponent(nombre)}`}
           className="flex items-center gap-1.5 font-karla font-bold text-[13px] text-texto-sec hover:text-texto transition-colors"
         >
           Ver todo
@@ -24,7 +24,7 @@ export default function FilaProyectos({ nombre, cuadrado, proyectos }: Fila) {
         {proyectos.map((proyecto) => (
           <Link
             key={proyecto.id}
-            to="/proyecto"
+            to={`/proyecto/${proyecto.id}`}
             className="flex flex-col gap-2 shrink-0 hover:-translate-y-1 transition-transform"
           >
             <Poster

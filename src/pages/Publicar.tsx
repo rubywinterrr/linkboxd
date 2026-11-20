@@ -1,331 +1,255 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
-import Navbar from '../components/Navbar'
-import Footer from '../components/Footer'
-import useUsuarioContext from '../hooks/useUsuarioContext';
+import { useEffect, useState, type FormEvent } from "react";
+import { Navigate, useNavigate } from "react-router-dom";
+import Footer from "../components/Footer";
+import Navbar from "../components/Navbar";
+import useUsuarioContext from "../hooks/useUsuarioContext";
+import { apiRequest, type ApiUser } from "../utils/api";
 
-export type Compañeros = {
-    nombreUser: string,
-    rol: string
-}
+type Teammate = {
+  id: string;
+  nombre: string;
+  nombreUsuario: string;
+};
 
-export default function Publicar () {
-    const [ link, setLink ] = useState <string>("");
-    const [ tipo, setTipo ] = useState <string>("Cortometraje");
-    const [ titulo, setTitulo ] = useState <string>("");
-    const [ año, setAño ] = useState <string>("");
-    const [ genero, setGenero ] = useState <string>("");
-    const [ duracion, setDuracion ] = useState <string>("");
-    const [ descripcion, setDescripcion ] = useState <string>("");
-    const [ compañeros, setCompañeros ] = useState <Compañeros[]>([]);
-    const [ busqueda, setBusqueda ] = useState <string>("");
-    const [ comentario, setComentario ] = useState <string>("");
-    const [ imagen ] = useState <string>("");
-    const [ cargando, setCargando ] = useState<boolean>(false);
-    const [ error, setError ] = useState<string | null>(null);
+const tipos = [
+  "Cortometraje",
+  "Podcast y radio",
+  "Session Bis",
+  "Cross Media",
+  "Animación",
+  "Documental",
+  "Otro",
+];
+const roles = ["Dirección", "Guión", "Sonido", "Fotografía", "Producción", "Montaje", "Arte"];
+const inputClass =
+  "w-full bg-[#1a1a1a] border border-zinc-800 rounded-md p-3 text-white focus:outline-none focus:border-zinc-500";
 
-    const navigate = useNavigate();
+export default function Publicar() {
+  const [url, setUrl] = useState("");
+  const [tipo, setTipo] = useState(tipos[0] ?? "Cortometraje");
+  const [titulo, setTitulo] = useState("");
+  const [anio, setAnio] = useState(String(new Date().getFullYear()));
+  const [genero, setGenero] = useState("");
+  const [duracion, setDuracion] = useState("");
+  const [descripcion, setDescripcion] = useState("");
+  const [comentario, setComentario] = useState("");
+  const [busqueda, setBusqueda] = useState("");
+  const [resultados, setResultados] = useState<ApiUser[]>([]);
+  const [equipo, setEquipo] = useState<(Teammate & { role: string })[]>([]);
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const { usuario, esMedios, cargando: cargandoSesion } = useUsuarioContext();
 
-    const { esMedios } = useUsuarioContext();
+  useEffect(() => {
+    const query = busqueda.trim();
+    if (query.length < 2) return;
 
-    const opciones = [
-    'Cortometraje',
-    'Podcast y radio',
-    'Session Bis',
-    'Cross Media',
-    'Animación',
-    'Documental',
-    'Otro'
-    ];
+    const timer = window.setTimeout(() => {
+      apiRequest<{ data: ApiUser[] }>(
+        `/users?q=${encodeURIComponent(query)}&type=medios`,
+      )
+        .then(({ data }) => setResultados(data))
+        .catch((cause: unknown) => {
+          setError(cause instanceof Error ? cause.message : "No se pudo buscar compañeros");
+        });
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [busqueda]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-            e.preventDefault();
-            setError(null);
-    
-            if (!link.trim() || !titulo.trim() || !descripcion.trim()) {
-                setError('Por favor, completa los campos obligatorios (Link, Título y Descripción).');
-                return;
-            }
-    
-            setCargando(true);
-    
-            try {
-                const token = localStorage.getItem('token');
-            const response = await fetch('api/tu-endpoint-de-publicar', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-                },
-                body: JSON.stringify({
-                    link,
-                    tipo,
-                    titulo,
-                    año,
-                    genero,
-                    duracion,
-                    descripcion,
-                    comentario,
-                    imagen
-                }),
-            });
+  if (cargandoSesion) return <p className="p-8 text-texto-sec">Cargando sesión...</p>;
+  if (!esMedios) return <Navigate to="/inicio" replace />;
 
-            const data = await response.json();
+  const agregarIntegrante = (user: ApiUser) => {
+    if (equipo.some((member) => member.id === user.id)) return;
+    setEquipo((members) => [
+      ...members,
+      {
+        id: user.id,
+        nombre: `${user.nombre} ${user.apellido}`,
+        nombreUsuario: user.nombreUsuario,
+        role: roles[0] ?? "Dirección",
+      },
+    ]);
+    setBusqueda("");
+    setResultados([]);
+  };
 
-            if (!response.ok) {
-                throw new Error(data.message || 'Error al publicar el proyecto');
-            }
-
-            navigate('/');
-    
-            } catch (err: unknown) {
-                console.error('Error en publicar media:', err);
-                setError(err instanceof Error ? err.message : 'Error de conexión con el servidor');
-            } finally {
-                setCargando(false);
-            }
-        };
-
-        const handleBack = () => {
-            navigate(-1);
-        }
-    
-        useEffect(() => {
-            fetch('apimaxiapuraterey')
-            .then((response) => {
-                if (!response.ok) {
-                throw new Error('Error al conectar con la API');
-                }
-                return response.json();
-            })
-            .then((data: Compañeros[]) => {
-                const alumnosMedios = data.filter(
-                (usuario: any) => usuario.tipo === 'Alumno de medios'
-                );
-                setCompañeros(alumnosMedios);
-            })
-            .catch((err) => {
-                console.error(err);
-                setError(err.message);
-            });
-        }, []);
-
-    if (!esMedios) {
-        return <Navigate to="/" />;
+  const publicar = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError(null);
+    setCargando(true);
+    try {
+      const { project } = await apiRequest<{ project: { id: string } }>("/projects", {
+        method: "POST",
+        body: JSON.stringify({
+          titulo,
+          tipo,
+          anio: Number(anio),
+          genero,
+          duracionMinutos: duracion ? Number(duracion) : null,
+          descripcion,
+          url,
+          equipo: [
+            ...equipo.map((member) => ({ userId: member.id, roles: [member.role] })),
+            ...(usuario
+              ? [{ userId: usuario.id, roles: ["Autor"], comment: comentario }]
+              : []),
+          ],
+        }),
+      });
+      navigate(`/proyecto/${project.id}`);
+    } catch (cause: unknown) {
+      setError(cause instanceof Error ? cause.message : "No se pudo publicar el proyecto");
+    } finally {
+      setCargando(false);
     }
+  };
 
-    return (
-        <>
-            <Navbar />
-            <div className="w-full bg-[#0a0a0a] text-white flex justify-center py-12 px-6 font-sans min-h-screen">
-                <div className="w-full max-w-4xl">
-                    
-                    <div className="mb-10">
-                        <p className="text-zinc-400 text-sm mb-2">
-                            Mi perfil  /  Publicar proyecto
-                        </p>
-                        <h1 className="text-3xl font-bold mb-2">Publicar proyecto</h1>
-                        <p className="text-zinc-400 text-sm">
-                            Se suma a tu perfil y a tu CV. Tus compañeros lo van a ver también en el suyo.
-                        </p>
-                    </div>
+  return (
+    <>
+      <Navbar />
+      <main className="min-h-screen bg-[#0a0a0a] text-white flex justify-center py-12 px-6 font-sans">
+        <div className="w-full max-w-4xl">
+          <div className="mb-10">
+            <p className="text-zinc-400 text-sm mb-2">Mi perfil / Publicar proyecto</p>
+            <h1 className="text-3xl font-bold mb-2">Publicar proyecto</h1>
+            <p className="text-zinc-400 text-sm">
+              Se suma a tu perfil y al de tus compañeros.
+            </p>
+          </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        {error && (
-                            <div className="bg-red-500/10 border border-red-500/50 text-red-500 p-3 rounded-md text-sm">
-                                {error}
-                            </div>
-                        )}
-                        
-                        <div className="space-y-6">
-                            <div className="flex flex-col gap-2">
-                                <label htmlFor="link" className="text-sm font-semibold text-zinc-300">Link de youtube</label>
-                                <input
-                                    type="text" 
-                                    id="link" 
-                                    value={link} 
-                                    onChange={(e) => setLink(e.target.value)}  
-                                    className="w-full bg-[#1a1a1a] border border-zinc-800 rounded-md p-3 text-white focus:outline-none focus:border-zinc-500 transition-colors"
-                                />
-                            </div>
+          <form onSubmit={publicar} className="space-y-6">
+            {error && (
+              <p role="alert" className="bg-red-500/10 border border-red-500/50 text-red-400 p-3 rounded-md text-sm">
+                {error}
+              </p>
+            )}
 
-                            <div className="flex flex-col gap-2">
-                                <label className="text-sm font-semibold text-zinc-300">Tipo de contenido</label>
-                                <div className="flex flex-wrap gap-3">
-                                {opciones.map((opcion) => (
-                                    <button
-                                        key={opcion}
-                                        type="button"
-                                        onClick={() => setTipo(opcion)}
-                                        className={`px-5 py-2 rounded-full font-medium text-sm transition-all ${
-                                            tipo === opcion
-                                                ? 'bg-white text-black'
-                                                : 'border border-zinc-700 text-zinc-300 hover:bg-zinc-800'
-                                        }`}
-                                    >
-                                        {opcion}
-                                    </button>
-                                ))}
-                                </div>
-                            </div>
+            <label className="block space-y-2 text-sm font-semibold text-zinc-300">
+              Link del proyecto
+              <input
+                type="url"
+                required
+                value={url}
+                onChange={(event) => setUrl(event.target.value)}
+                className={inputClass}
+                placeholder="https://..."
+              />
+            </label>
 
-                            <div className="flex flex-col gap-2">
-                                <label htmlFor="titulo" className="text-sm font-semibold text-zinc-300">Título</label>
-                                <input
-                                    type="text" 
-                                    id="titulo" 
-                                    value={titulo} 
-                                    onChange={(e) => setTitulo(e.target.value)}  
-                                    className="w-full bg-[#1a1a1a] border border-zinc-800 rounded-md p-3 text-white focus:outline-none focus:border-zinc-500 transition-colors"
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="flex flex-col gap-1">
-                                    <label htmlFor="año" className="text-xs font-semibold text-gray-400">Año</label>
-                                    <select
-                                        id="año"
-                                        value={año}
-                                        onChange={(e) => setAño(e.target.value)}
-                                        className="w-full bg-zinc-900 border border-zinc-800 rounded-md p-2.5 text-sm text-zinc-200 focus:outline-none focus:border-zinc-500 transition-colors"
-                                    >
-                                        <option value="2025">2025</option>
-                                        <option value="2024">2024</option>
-                                        <option value="2023">2023</option>
-                                        <option value="2022">2022</option>
-                                        <option value="2021">2021</option>
-                                        <option value="2020">2020</option>
-                                    </select>
-                                </div>
-
-                                <div className="flex flex-col gap-1">
-                                    <label htmlFor="genero" className="text-xs font-semibold text-gray-400">Género</label>
-                                    <select
-                                        id="genero"
-                                        value={genero}
-                                        onChange={(e) => setGenero(e.target.value)}
-                                        className="w-full bg-zinc-900 border border-zinc-800 rounded-md p-2.5 text-sm text-zinc-200 focus:outline-none focus:border-zinc-500 transition-colors"
-                                    >
-                                        <option value="terror">Terror</option>
-                                        <option value="comedia">Comedia</option>
-                                        <option value="romance">Romance</option>
-                                        <option value="romcom">Romcom</option>
-                                        <option value="accion">Acción</option>
-                                        <option value="aventura">Aventura</option>
-                                        <option value="policial">Policial</option>
-                                        <option value="drama">Drama</option>
-                                        <option value="cienciaficcion">Ciencia Ficción</option>
-                                        <option value="fantasia">Fantasía</option>
-                                    </select>
-                                </div>
-
-                                <div className="flex flex-col gap-1">
-                                    <label htmlFor="duracion" className="text-xs font-semibold text-gray-400">Duración</label>
-                                    <select
-                                        id="duracion"
-                                        value={duracion}
-                                        onChange={(e) => setDuracion(e.target.value)}
-                                        className="w-full bg-zinc-900 border border-zinc-800 rounded-md p-2.5 text-sm text-zinc-200 focus:outline-none focus:border-zinc-500 transition-colors"
-                                    >
-                                        <option value="10">10 min</option>
-                                        <option value="15">15 min</option>
-                                        <option value="20">20 min</option>
-                                        <option value="25">25 min</option>
-                                        <option value="30">30 min</option>
-                                        <option value="45">45 min</option>
-                                        <option value="60">60 min</option>
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            <div className="flex flex-col gap-2">
-                                <label htmlFor="descripcion" className="text-sm font-semibold text-zinc-300">Descripción</label>
-                                <input
-                                    type="text" 
-                                    id="descripcion" 
-                                    value={descripcion} 
-                                    onChange={(e) => setDescripcion(e.target.value)}  
-                                    className="w-full bg-[#1a1a1a] border border-zinc-800 rounded-md p-3 text-white focus:outline-none focus:border-zinc-500 transition-colors"
-                                />
-                            </div>
-
-                            <div className="flex flex-col gap-2">
-                                <label htmlFor="busqueda" className="text-sm font-semibold text-zinc-300">Buscar Compañeros de Medios</label>
-                                <input
-                                    type="text"
-                                    id="busqueda"
-                                    placeholder="Buscar compañero por @usuario"
-                                    value={busqueda}
-                                    onChange={(e) => setBusqueda(e.target.value)}
-                                    className="w-full bg-[#1a1a1a] border border-zinc-800 rounded-md p-3 text-white focus:outline-none focus:border-zinc-500 transition-colors"
-                                />
-    
-                                {busqueda.trim() !== '' && (
-                                    <ul className="bg-[#1a1a1a] border border-zinc-800 rounded-md max-h-40 overflow-y-auto mt-1">
-                                        {compañeros && compañeros.length > 0 ? (
-                                            compañeros.filter((usuario) => 
-                                                usuario.nombreUser.toLowerCase().includes(busqueda.toLowerCase())
-                                            ).map((usuario, index) => (
-                                                <li 
-                                                    key={index}
-                                                    onClick={() => {
-                                                        setBusqueda(usuario.nombreUser);
-                                                    }}
-                                                    className="p-2.5 hover:bg-zinc-800 cursor-pointer text-sm text-zinc-300 border-b border-zinc-900 last:border-none flex justify-between items-center"
-                                                >
-                                                    <span>{usuario.nombreUser}</span>
-                                                    <select 
-                                                        className="text-xs bg-zinc-900 text-zinc-300 border border-zinc-700 rounded p-1"
-                                                        onClick={(e) => e.stopPropagation()} // Evita que se seleccione el usuario al hacer click en el select
-                                                    >
-                                                        <option value="direccion">Dirección</option>
-                                                        <option value="guion">Guión</option>
-                                                        <option value="sonido">Sonido</option>
-                                                        <option value="fotografia">Fotografía</option>
-                                                    </select>
-                                                </li>
-                                            ))
-                                        ) : (
-                                            <p className="p-2.5 text-sm text-zinc-500">Cargando compañeros o sin resultados...</p>
-                                        )}
-                                    </ul>
-                                )}
-                            </div>
-
-                            <div className="flex flex-col gap-2">
-                                <label htmlFor="comentario" className="text-sm font-semibold text-zinc-300">Comentario</label>
-                                <input
-                                    type="text" 
-                                    id="comentario" 
-                                    value={comentario} 
-                                    onChange={(e) => setComentario(e.target.value)}  
-                                    className="w-full bg-[#1a1a1a] border border-zinc-800 rounded-md p-3 text-white focus:outline-none focus:border-zinc-500 transition-colors"
-                                />
-                            </div>
-                        </div>
-        
-                        <hr className="border-zinc-800 my-8" />
-        
-                        <div className="flex justify-between items-center">
-                            <button 
-                                type="button" 
-                                className="text-zinc-400 hover:text-white font-medium text-sm transition-colors" 
-                                onClick={handleBack}
-                            >
-                                Cancelar
-                            </button>
-                            <button 
-                                type="submit" 
-                                className="bg-white text-black px-6 py-2.5 rounded-md font-semibold text-sm disabled:opacity-50 hover:bg-zinc-200 transition-colors cursor-pointer" 
-                                disabled={cargando}
-                            >
-                                {cargando ? 'Publicando...' : 'Publicar'}
-                            </button>
-                        </div>
-                    </form>
-                </div>
+            <div className="space-y-2">
+              <span className="text-sm font-semibold text-zinc-300">Tipo de contenido</span>
+              <div className="flex flex-wrap gap-2">
+                {tipos.map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => setTipo(option)}
+                    className={`px-4 py-2 rounded-full text-sm ${
+                      tipo === option ? "bg-white text-black" : "border border-zinc-700 text-zinc-300"
+                    }`}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
             </div>
-            <Footer />
-        </>
-    );
+
+            <label className="block space-y-2 text-sm font-semibold text-zinc-300">
+              Título
+              <input required maxLength={160} value={titulo} onChange={(event) => setTitulo(event.target.value)} className={inputClass} />
+            </label>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <label className="space-y-2 text-xs font-semibold text-gray-400">
+                Año
+                <input type="number" min={1900} max={2200} required value={anio} onChange={(event) => setAnio(event.target.value)} className={inputClass} />
+              </label>
+              <label className="space-y-2 text-xs font-semibold text-gray-400">
+                Género
+                <input maxLength={80} value={genero} onChange={(event) => setGenero(event.target.value)} className={inputClass} />
+              </label>
+              <label className="space-y-2 text-xs font-semibold text-gray-400">
+                Duración (minutos)
+                <input type="number" min={1} max={1000} value={duracion} onChange={(event) => setDuracion(event.target.value)} className={inputClass} />
+              </label>
+            </div>
+
+            <label className="block space-y-2 text-sm font-semibold text-zinc-300">
+              Descripción
+              <textarea required maxLength={5000} value={descripcion} onChange={(event) => setDescripcion(event.target.value)} className={`${inputClass} min-h-28`} />
+            </label>
+
+            <div className="space-y-2">
+              <label htmlFor="buscar-companero" className="text-sm font-semibold text-zinc-300">
+                Buscar compañeros de Medios
+              </label>
+              <input
+                id="buscar-companero"
+                value={busqueda}
+                onChange={(event) => {
+                  setBusqueda(event.target.value);
+                  if (event.target.value.trim().length < 2) setResultados([]);
+                }}
+                className={inputClass}
+                placeholder="Escribí al menos 2 caracteres del nombre de usuario"
+              />
+              {resultados.length > 0 && (
+                <ul className="bg-[#1a1a1a] border border-zinc-800 rounded-md max-h-40 overflow-y-auto">
+                  {resultados
+                    .filter((user) => user.id !== usuario?.id)
+                    .filter((user) => !equipo.some((member) => member.id === user.id))
+                    .map((user) => (
+                      <li key={user.id}>
+                        <button
+                          type="button"
+                          onClick={() => agregarIntegrante(user)}
+                          className="w-full text-left p-2.5 hover:bg-zinc-800 text-sm text-zinc-300"
+                        >
+                          {user.nombre} {user.apellido} · @{user.nombreUsuario}
+                        </button>
+                      </li>
+                    ))}
+                </ul>
+              )}
+              {equipo.map((member) => (
+                <div key={member.id} className="flex items-center justify-between gap-3 bg-zinc-900 p-2.5 rounded">
+                  <span className="text-sm">{member.nombre} · @{member.nombreUsuario}</span>
+                  <div className="flex gap-2">
+                    <select
+                      value={member.role}
+                      onChange={(event) => setEquipo((members) => members.map((item) => item.id === member.id ? { ...item, role: event.target.value } : item))}
+                      className="bg-zinc-900 border border-zinc-700 rounded p-1 text-xs"
+                      aria-label={`Rol de ${member.nombre}`}
+                    >
+                      {roles.map((role) => <option key={role}>{role}</option>)}
+                    </select>
+                    <button type="button" onClick={() => setEquipo((members) => members.filter((item) => item.id !== member.id))} aria-label={`Quitar a ${member.nombre}`}>
+                      Quitar
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <label className="block space-y-2 text-sm font-semibold text-zinc-300">
+              Tu comentario sobre el proyecto (opcional)
+              <textarea maxLength={1000} value={comentario} onChange={(event) => setComentario(event.target.value)} className={`${inputClass} min-h-20`} />
+            </label>
+
+            <div className="flex justify-between items-center border-t border-zinc-800 pt-6">
+              <button type="button" onClick={() => navigate(-1)} className="text-zinc-400 hover:text-white">
+                Cancelar
+              </button>
+              <button type="submit" disabled={cargando} className="bg-white text-black px-6 py-2.5 rounded-md font-semibold text-sm disabled:opacity-50">
+                {cargando ? "Publicando..." : "Publicar"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </main>
+      <Footer />
+    </>
+  );
 }

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import useUsuarioContext from '../hooks/useUsuarioContext';
+import { apiRequest, toUsuario, type ApiUser } from '../utils/api';
 
 export default function InicioSesion () {
     const [ nombreUser, setNombreUser] = useState<string>('');
@@ -19,45 +20,26 @@ export default function InicioSesion () {
         setError(null);
 
         if (!nombreUser.trim() || !contraseña.trim()) {
-            alert('Por favor, llenar todos sus datos.');
+            setError('Completá tu usuario y contraseña.');
             return;
         }
 
         setCargando(true);
 
         try {
-            const response = await fetch('maxiwearewaiting', {
+            const data = await apiRequest<{ token: string; user: ApiUser }>('/auth/login', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
                 body: JSON.stringify({
                     nombreUser,
                     password: contraseña
                 }),
             });
 
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || 'Error al iniciar sesión');
-            }
-
-            const userId = data.user?.id ?? data.user?.id_usuario ?? data.user?.usuario_id;
-            if (userId === undefined || userId === null || userId === '') {
-                throw new Error('El servidor no devolvió el ID del usuario');
-            }
-
-            localStorage.setItem('token', data.token);
-            localStorage.setItem('user', JSON.stringify(data.user));
-            localStorage.setItem('userId', String(userId));
-
-            iniciarSesion(data.user);
+            iniciarSesion(toUsuario(data.user), data.token);
 
             navigate('/inicio');
 
         } catch (err: unknown) {
-            console.error('Error en login:', err);
             setError(err instanceof Error ? err.message : 'Error de conexión con el servidor');
         } finally {
             setCargando(false);

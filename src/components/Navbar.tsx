@@ -8,6 +8,8 @@ import useUsuarioContext from "../hooks/useUsuarioContext";
 
 export default function Navbar() {
   const [menuAbierto, setMenuAbierto] = useState(false);
+  const [buscarAbierto, setBuscarAbierto] = useState(false);
+  const [busqueda, setBusqueda] = useState("");
   const navigate = useNavigate();
   const { usuario, esMedios } = useUsuarioContext();
 
@@ -33,14 +35,36 @@ export default function Navbar() {
 
         {/* Centro: links */}
         <div className="flex items-center">
-          <Link to="/" className="font-karla font-bold text-sm text-texto">
+          <Link to="/inicio" className="font-karla font-bold text-sm text-texto">
             Explorar
           </Link>
         </div>
 
         {/* Derecha: acciones */}
         <div className="w-75 flex items-center justify-end gap-4.5">
-          <button className="text-texto cursor-pointer">
+          {buscarAbierto && (
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                navigate(`/inicio?q=${encodeURIComponent(busqueda.trim())}`);
+                setBuscarAbierto(false);
+              }}
+            >
+              <input
+                autoFocus
+                aria-label="Buscar proyectos"
+                placeholder="Buscar proyectos"
+                value={busqueda}
+                onChange={(event) => setBusqueda(event.target.value)}
+                className="w-40 bg-transparent border-b border-borde px-2 py-1 text-sm text-texto outline-none"
+              />
+            </form>
+          )}
+          <button
+            aria-label={buscarAbierto ? "Cerrar búsqueda" : "Buscar proyectos"}
+            onClick={() => setBuscarAbierto((open) => !open)}
+            className="text-texto cursor-pointer"
+          >
             <LuSearch className="w-4.5 h-4.5" />
           </button>
 

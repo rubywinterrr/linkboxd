@@ -7,6 +7,13 @@ export interface Experience {
   place: string;
 }
 
+export interface StoredFile {
+  id: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+}
+
 export interface UserProfile {
   bio: string;
   year: number | null;
@@ -14,6 +21,7 @@ export interface UserProfile {
   phone: string | null;
   tools: string[];
   experiences: Experience[];
+  cv: StoredFile | null;
 }
 
 export interface UserDocument {
@@ -45,8 +53,10 @@ export interface ProjectDocument {
   descripcion: string;
   url: string;
   imagen: string | null;
+  coverFile: StoredFile | null;
   publicadoPor: string;
   equipo: ProjectMember[];
+  views: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -74,6 +84,21 @@ export interface ReviewDocument {
   updatedAt: string;
 }
 
+export interface ReviewLikeDocument {
+  reviewId: string;
+  userId: string;
+  createdAt: string;
+}
+
+export interface ReviewReplyDocument {
+  id: string;
+  reviewId: string;
+  userId: string;
+  text: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface SessionDocument {
   tokenHash: string;
   userId: string;
@@ -86,9 +111,14 @@ export interface DatabaseState {
   favorites: FavoriteDocument[];
   ratings: RatingDocument[];
   reviews: ReviewDocument[];
+  reviewLikes: ReviewLikeDocument[];
+  reviewReplies: ReviewReplyDocument[];
   sessions: SessionDocument[];
 }
 
-export type PublicUser = Omit<UserDocument, "passwordHash" | "email"> & {
+export type PublicUser = Omit<UserDocument, "passwordHash" | "email" | "profile"> & {
   email?: string;
+  profile: Omit<UserProfile, "cv"> & {
+    cv: (Omit<StoredFile, "id"> & { url: string }) | null;
+  };
 };

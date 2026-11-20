@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import useUsuarioContext from '../hooks/useUsuarioContext';
-import type { Usuario } from '../utils/types';
+import { apiRequest, toUsuario, type ApiUser } from '../utils/api';
 
 export default function Registro () {
     const [ nombre, setNombre ] = useState<string>('');
@@ -11,7 +11,6 @@ export default function Registro () {
     const [ apellido, setApellido ] = useState<string>('');
     const [ mail, setMail ] = useState<string>(''); 
     const [ contraseña, setContraseña ] = useState<string>('');
-    const [ rol, setRol ] = useState<Usuario['tipo']>('medios');
     const [ telefono, setTelefono ] = useState<string>('');
     const [ cargando, setCargando ] = useState<boolean>(false);
     const [ error, setError ] = useState<string | null>(null);
@@ -24,50 +23,31 @@ export default function Registro () {
         e.preventDefault();
         setError(null);
 
-        if (!nombre.trim() || !apellido.trim() || !mail.trim() || !contraseña.trim()) {
-            alert('Por favor, llenar todos sus datos.');
+        if (!nombre.trim() || !nombreUser.trim() || !apellido.trim() || !mail.trim() || !contraseña.trim()) {
+            setError('Completá todos los campos obligatorios.');
             return;
         }
 
         setCargando(true);
 
         try {
-            const response = await fetch('maxiwearewaiting', {
+            const data = await apiRequest<{ token: string; user: ApiUser }>('/auth/register', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
                 body: JSON.stringify({
                     nombre,
                     apellido,
+                    nombreUsuario: nombreUser,
                     email: mail,
                     password: contraseña,
-                    rol,
                     telefono
                 }),
             });
 
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || 'Error al registrarse');
-            }
-
-            const userId = data.user?.id ?? data.user?.id_usuario ?? data.user?.usuario_id;
-            if (userId === undefined || userId === null || userId === '') {
-                throw new Error('El servidor no devolvió el ID del usuario');
-            }
-
-            localStorage.setItem('token', data.token);
-            localStorage.setItem('user', JSON.stringify(data.user));
-            localStorage.setItem('userId', String(userId));
-
-            registrarse(data.user);
+            registrarse(toUsuario(data.user), data.token);
 
             navigate('/inicio');
 
         } catch (err: unknown) {
-            console.error('Error en registrarse:', err);
             setError(err instanceof Error ? err.message : 'Error de conexión con el servidor');
         } finally {
             setCargando(false);
@@ -173,34 +153,9 @@ export default function Registro () {
                             />
                     </div>
 
-                    <div className="mt-12 pt-6">
-                        <div className="mb-3 text-sm font-semibold text-zinc-300">Rol</div>
-                        <div className="flex flex-wrap gap-3">
-                            <button 
-                                type="button" 
-                                onClick={() => setRol('medios')}
-                                className={`px-5 py-2 rounded-full font-medium text-sm transition-all ${
-                                    rol === 'medios'
-                                    ? 'bg-white text-black' 
-                                    : 'border border-zinc-700 text-zinc-300 hover:bg-zinc-800'
-                                }`}
-                            >
-                                Alumno de medios
-                            </button>
-                            
-                            <button 
-                                type="button" 
-                                onClick={() => setRol('outsider')}
-                                className={`px-5 py-2 rounded-full font-medium text-sm transition-all ${
-                                    rol === 'outsider'
-                                    ? 'bg-white text-black' 
-                                    : 'border border-zinc-700 text-zinc-300 hover:bg-zinc-800'
-                                }`}
-                            >
-                                Outsider
-                            </button>
-                        </div>
-                    </div>
+                    <p className="mt-6 text-sm text-zinc-400">
+                        El tipo de cuenta se asigna automáticamente según el correo autorizado por la escuela.
+                    </p>
 
                     <hr className="border-zinc-800 my-8" />
 
@@ -216,9 +171,8 @@ export default function Registro () {
                             type="submit" 
                             className="bg-white text-black px-6 py-2.5 rounded-md font-semibold text-sm disabled:opacity-50 hover:bg-zinc-200 transition-colors" 
                             disabled={cargando}
-                            onClick={handleSubmit}
                         >
-                            {cargando ? 'Publicando...' : 'Publicar'}
+                            {cargando ? 'Creando cuenta...' : 'Registrarme'}
                         </button>
                     </div>
                     

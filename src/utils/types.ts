@@ -1,5 +1,5 @@
 export type Proyecto = {
-  id: number;
+  id: number | string;
   titulo: string;
   color: string;
   anio: number;
@@ -8,7 +8,7 @@ export type Proyecto = {
 };
 
 export type Fila = {
-  id: number;
+  id: number | string;
   nombre: string;
   cuadrado?: boolean;
   proyectos: Proyecto[];
@@ -32,6 +32,7 @@ export type Experiencia = {
 };
 
 export type Usuario = {
+  id: string;
   nombre: string;
   apellido: string;
   nombreUsuario: string;

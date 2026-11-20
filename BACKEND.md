@@ -1,8 +1,9 @@
 # LinkBoxd: guía para conectar el frontend
 
-Este documento es la guía de integración entre el frontend y el backend. El frontend todavía no llama a la API; el equipo puede usar los contratos de abajo para empezar esa conexión sin cambiar la estructura de datos del servidor.
+Guía de los contratos implementados por la API. Todas las rutas usan el prefijo
+`http://localhost:4000/api/v1`; `:userId` acepta el ID o el nombre de usuario.
 
-## 1. Iniciar el servidor
+## 1. Iniciar y configurar
 
 Desde PowerShell, en la carpeta `backend`:
 
@@ -12,194 +13,206 @@ Copy-Item .env.example .env
 npm run dev
 ```
 
-La dirección local es `http://localhost:4000/api/v1`. Para saber si funciona, abrir `GET http://localhost:4000/api/v1/health`. Para ver la lista que publica el mismo servidor, abrir `GET http://localhost:4000/api/v1`.
+La API escucha en `http://localhost:4000/api/v1`. El frontend usa esa dirección
+por defecto; para otro entorno definí `VITE_API_URL` en la raíz del proyecto
+(por ejemplo, `VITE_API_URL=https://api.ejemplo.com/api/v1`). `GET /health`
+comprueba que responde y `GET /` publica el índice de rutas.
 
-El correo de una cuenta solo obtiene el tipo `medios` si se encuentra en `MEDIOS_EMAILS` del archivo `backend/.env`; los demás registros son `outsider`. No enviar el tipo desde el frontend.
+La cuenta se registra como `medios` solo si su correo está en la lista separada
+por comas `MEDIOS_EMAILS` de `backend/.env`; los demás registros son `outsider`.
+No se acepta el tipo de usuario enviado por el frontend. La lista explícita evita
+confiar en un dominio de correo que todavía no se verifica.
 
-## 2. Conexión desde React
+Variables disponibles:
 
-Definir la dirección de la API una sola vez (en desarrollo, `http://localhost:4000/api/v1`). Para llamadas autenticadas, leer el token devuelto por login/registro y mandarlo como `Authorization: Bearer <token>`.
+| Variable | Uso | Valor por defecto |
+|---|---|---|
+| `PORT` | Puerto HTTP | `4000` |
+| `CORS_ORIGIN` | Orígenes permitidos, separados por comas | `http://localhost:5173` |
+| `PUBLIC_API_URL` | URL pública base que se usa en enlaces de archivos | `http://localhost:4000/api/v1` |
+| `MEDIOS_EMAILS` | Correos autorizados como Medios | vacío |
+| `DATA_DIRECTORY` | Carpeta de `db.json` | `backend/data` |
+| `UPLOADS_DIRECTORY` | Carpeta de CV y portadas | `DATA_DIRECTORY/uploads` |
+
+## 2. Datos de ejemplo
+
+El comando de carga es explícito: no se ejecuta al iniciar el servidor y puede
+repetirse sin duplicar usuarios ni proyectos de ejemplo.
+
+1. Agregá `demo.medios@ort.edu.ar` a `MEDIOS_EMAILS` en `backend/.env`.
+2. Desde `backend`, definí una contraseña temporal de al menos 8 caracteres y
+   ejecutá:
+
+```powershell
+$env:SEED_PASSWORD = "cambia-esta-clave"
+npm run seed
+```
+
+Se crean `martina.sosa` (`demo.medios@ort.edu.ar`) y `lucia.perez`
+(`demo.outsider@example.com`), dos proyectos y actividad de ejemplo. Ambas
+cuentas usan el valor de `SEED_PASSWORD`; cada ejecución lo vuelve a establecer
+para esas cuentas de demostración. No uses una contraseña real ni ejecutes el
+seed en una instancia pública.
+
+## 3. Autenticación y solicitudes
+
+Registro y login devuelven un token. En las rutas protegidas se envía así:
 
 ```ts
-const API = "http://localhost:4000/api/v1";
-const token = localStorage.getItem("token");
-
 const response = await fetch(`${API}/projects`, {
   headers: token ? { Authorization: `Bearer ${token}` } : {},
 });
-
-if (!response.ok) {
-  const result = await response.json();
-  throw new Error(result.error?.message ?? "No se pudo completar la solicitud");
-}
-
-const result = await response.json();
 ```
 
-Para solicitudes `POST` o `PUT` con JSON, agregar `Content-Type: application/json` y `body: JSON.stringify(datos)`. Logout y operaciones que devuelven `204` no tienen cuerpo JSON. No configurar `mode: "no-cors"`.
+Para JSON, enviar `Content-Type: application/json` y
+`body: JSON.stringify(datos)`. Las rutas de archivos reciben `multipart/form-data`
+con un campo llamado `file`. No fijes manualmente el `Content-Type` de
+`FormData`: el navegador agrega el boundary. Logout y las operaciones `204`
+devuelven el cuerpo vacío. No configurar `mode: "no-cors"`.
 
-## 3. Rutas disponibles
+## 4. Rutas
 
-Todas las rutas usan el prefijo `http://localhost:4000/api/v1`. `:userId` acepta el ID o el nombre de usuario. `:projectId` es el ID devuelto al crear el proyecto.
+`Token` indica sesión requerida. `Propietario` o `autor` limita la operación al
+dueño del recurso. Las rutas `multipart` reciben el campo `file`.
 
 | Método | Ruta | Acceso | Para qué sirve |
 |---|---|---|---|
-| `GET` | `/` | Público | Índice JSON de rutas disponibles |
-| `GET` | `/health` | Público | Comprobar que la API responde |
-| `POST` | `/auth/register` | Público | Registrar e iniciar sesión |
+| `GET` | `/` | Público | Índice JSON de rutas |
+| `GET` | `/health` | Público | Estado de la API |
+| `POST` | `/auth/register` | Público | Crear cuenta e iniciar sesión |
 | `POST` | `/auth/login` | Público | Iniciar sesión |
 | `POST` | `/auth/logout` | Token | Cerrar la sesión actual |
-| `GET` | `/auth/me` | Token | Obtener la cuenta de la sesión |
-| `GET` | `/users?q=texto&type=medios` | Token | Buscar compañeros; los parámetros son opcionales |
+| `GET` | `/auth/me` | Token | Obtener la cuenta actual |
+| `GET` | `/users?q=texto&type=medios` | Público | Buscar usuarios; ambos parámetros son opcionales |
+| `PUT` | `/users/me` | Token | Editar datos del perfil propio |
+| `PUT` | `/users/me/cv` | Token Medios, multipart | Subir o reemplazar el CV PDF propio |
+| `DELETE` | `/users/me/cv` | Token Medios | Eliminar el CV propio |
+| `GET` | `/users/:userId/cv?download=true` | Token | Ver o descargar el CV de un perfil Medios |
 | `GET` | `/users/:userId` | Público | Ver perfil y proyectos |
-| `GET` | `/users/:userId/reviews` | Público | Ver las reseñas escritas por un usuario |
-| `GET` | `/users/me/favorites` | Token | Ver los proyectos favoritos propios |
-| `GET` | `/projects?type=Cortometraje&q=texto&sort=recent&page=1&limit=20` | Público | Explorar, filtrar y paginar proyectos |
+| `GET` | `/users/:userId/reviews` | Público | Ver reseñas escritas por el usuario |
+| `GET` | `/users/me/favorites` | Token | Ver los favoritos propios |
+| `GET` | `/projects` | Público | Explorar, filtrar y paginar |
 | `POST` | `/projects` | Token Medios | Publicar un proyecto |
-| `GET` | `/projects/:projectId` | Público | Ver detalle, equipo, promedio, favoritos y puntaje propio |
+| `PUT` | `/projects/:projectId` | Token autor | Editar parcialmente el proyecto |
+| `DELETE` | `/projects/:projectId` | Token autor | Borrar el proyecto y sus datos asociados |
+| `GET` | `/projects/:projectId` | Público | Ver detalle; cada solicitud suma una vista |
+| `PUT` | `/projects/:projectId/cover` | Token autor, multipart | Subir o reemplazar la portada |
+| `DELETE` | `/projects/:projectId/cover` | Token autor | Quitar la portada cargada como archivo |
+| `GET` | `/projects/:projectId/cover` | Público | Obtener la portada cargada |
+| `PUT` | `/projects/:projectId/team-comment` | Token integrante | Editar el comentario propio en el equipo |
 | `PUT` | `/projects/:projectId/favorite` | Token | Agregar a favoritos |
 | `DELETE` | `/projects/:projectId/favorite` | Token | Quitar de favoritos |
 | `PUT` | `/projects/:projectId/rating` | Token | Crear o cambiar el puntaje propio |
-| `GET` | `/projects/:projectId/reviews` | Público | Ver reseñas, primero las más recientes |
+| `GET` | `/projects/:projectId/reviews` | Público | Ver reseñas, respuestas y “me gusta” |
 | `POST` | `/projects/:projectId/reviews` | Token | Publicar una reseña |
+| `PUT` | `/reviews/:reviewId` | Token autor | Editar la reseña propia |
+| `DELETE` | `/reviews/:reviewId` | Token autor | Borrar la reseña y sus interacciones |
+| `PUT` | `/reviews/:reviewId/like` | Token | Marcar “me gusta” (idempotente) |
+| `DELETE` | `/reviews/:reviewId/like` | Token | Quitar “me gusta” |
+| `POST` | `/reviews/:reviewId/replies` | Token | Responder a una reseña |
 
-El servidor también muestra todas sus rutas en `GET /api/v1`. Los parámetros de `GET /projects` son `type`, `q`, `sort` (`recent`, `popular` o `rating`), `page` y `limit` (máximo 50).
+### Cuentas, perfiles y privacidad
 
-## 4. Datos para enviar y respuestas
+- Registro: `POST /auth/register` recibe `nombre`, `apellido`,
+  `nombreUsuario`, `email`, `password` y `telefono` opcional. Login acepta
+  `identificador` (usuario o correo), `nombreUser` o `email`, además de
+  `password`.
+- `GET /users` devuelve `{ "data": [...] }` con ID, nombres, nombre de usuario y
+  tipo; nunca devuelve correos, teléfonos ni contraseñas. Acepta `q` y
+  `type=medios`.
+- `PUT /users/me` recibe cualquier combinación de `bio`, `year`, `specialty`,
+  `phone`, `tools` y `experiences`. Las experiencias usan
+  `{ "id"?: "...", "year": 2025, "position": "...", "place": "..." }`; si no se
+  envía `id`, el servidor lo genera. Solo se modifican los campos enviados.
+- `GET /users/:userId` no expone email ni teléfono al público. El perfil privado
+  propio se obtiene con `GET /auth/me`. El endpoint público `GET /users` muestra
+  los datos básicos; cuando se llama con sesión, agrega los metadatos y la URL
+  de CV para perfiles Medios que tengan uno. `GET /users/:userId` también
+  incluye esos metadatos al consultarse con sesión.
+- CV: enviar un PDF de hasta 10 MB como `file` a `PUT /users/me/cv`. Cualquier
+  usuario con sesión puede ver o descargar el CV de un perfil Medios con
+  `GET /users/:userId/cv`, agregando `?download=true` para descargarlo. Sin
+  sesión, el CV no se puede ver ni se devuelve su URL; outsider no puede cargar
+  un CV.
+- Las cuentas Medios se determinan únicamente por `MEDIOS_EMAILS`. Cambiar la
+  lista no convierte automáticamente cuentas existentes.
 
-### Registrar cuenta
+### Proyectos, favoritos y vistas
 
-`POST /auth/register`
+- `GET /projects` acepta `type`, `q`, `sort` (`recent`, `popular` o `rating`),
+  `page` y `limit` (máximo 50). Devuelve `{ "data": [...], "pagination": ... }`.
+- `POST /projects` recibe `titulo`, `tipo`, `anio`, `genero`, `duracionMinutos`,
+  `descripcion`, `url`, `imagen` (URL externa opcional) y `equipo` opcional.
+  Valores permitidos para `tipo`: `Cortometraje`, `Podcast y radio`,
+  `Session Bis`, `Cross Media`, `Animación`, `Documental`, `Otro`. El autor se
+  agrega automáticamente al equipo; todos sus integrantes deben ser de Medios.
+- `PUT /projects/:projectId` acepta parcialmente los campos de creación. Solo el
+  autor puede editar o eliminar el proyecto. El servidor conserva los comentarios
+  de cada integrante al editar el equipo.
+- Portada: `PUT /projects/:projectId/cover` recibe PNG, JPEG o WebP de hasta
+  5 MB en `file`. La URL resultante aparece en `project.imagen`. La portada de
+  archivo reemplaza visualmente una URL externa mientras exista; al quitarla,
+  vuelve a mostrarse la URL externa, si había una. En despliegues, configurar
+  `PUBLIC_API_URL` con la URL pública base de la API.
+- `GET /projects/:projectId` devuelve `project`, `author`, `team`,
+  `ratingAverage`, `ratingCount`, `ratingHistogram`, `reviewCount`,
+  `favoriteCount`, `viewCount`, `isFavorite` y `myRating`. Cada solicitud a esta
+  ruta incrementa `viewCount`, incluso recargas y consultas sin sesión.
+- Cada usuario puede guardar hasta cuatro favoritos. Agregar uno ya guardado no
+  cambia nada; intentar agregar un quinto devuelve `409`. Primero quitá uno con
+  `DELETE /projects/:projectId/favorite`.
+- Cada usuario tiene un puntaje por proyecto; enviar otro valor a la misma ruta
+  lo reemplaza.
+- `PUT /projects/:projectId/team-comment` recibe `{ "comment": "..." }`. Solo
+  el integrante correspondiente puede editar su comentario.
 
-```json
-{
-  "nombre": "Ana",
-  "apellido": "Pérez",
-  "nombreUsuario": "ana.perez",
-  "email": "ana@example.com",
-  "password": "una-clave-segura",
-  "telefono": "1112345678"
-}
-```
+### Reseñas, “me gusta” y respuestas
 
-Respuesta `201`: `{ "token": "...", "user": { ... } }`. El usuario incluye `id`, `nombre`, `apellido`, `nombreUsuario`, `tipo`, `profile` y correo. No incluye contraseña ni hash.
+- Crear una reseña: `POST /projects/:projectId/reviews` con
+  `{ "value": 5, "text": "..." }`; valor entre 1 y 5. Solo se permite una reseña
+  por usuario y proyecto; el duplicado devuelve `409`.
+- `PUT /reviews/:reviewId` recibe el mismo cuerpo para editar puntaje y texto.
+  Solo el autor puede editar o borrar su reseña.
+- Las respuestas se agregan con `POST /reviews/:reviewId/replies` y
+  `{ "text": "..." }`. Las respuestas son comentarios directos de la reseña.
+- Marcar y quitar “me gusta” usa `PUT` y `DELETE /reviews/:reviewId/like`.
+  Cada usuario cuenta una sola vez. Las reseñas incluyen `likeCount`, `isLiked`
+  y `replies`; sin token, `isLiked` es `false`.
+- Borrar una reseña elimina también sus “me gusta” y respuestas. Borrar un
+  proyecto elimina sus reseñas, puntajes y favoritos.
 
-### Iniciar sesión
+## 5. Archivos y persistencia
 
-`POST /auth/login`
+El JSON se guarda en `backend/data/db.json`; los CV y portadas, por defecto, en
+`backend/data/uploads/`. Ambas carpetas están ignoradas por Git. En otro entorno
+configurá `DATA_DIRECTORY` y `UPLOADS_DIRECTORY` en almacenamiento persistente y
+respaldá las dos carpetas. Los nombres almacenados son generados por el servidor;
+no se guarda el archivo con el nombre enviado por el usuario.
 
-```json
-{ "identificador": "ana.perez", "password": "una-clave-segura" }
-```
+El store escribe el JSON mediante archivo temporal y serializa las escrituras
+dentro de un único proceso. Al iniciar, incorpora valores por defecto para los
+nuevos campos y colecciones, por lo que conserva los `db.json` anteriores. No
+coordina escrituras entre múltiples instancias ni ofrece las garantías de una
+base de datos para despliegues con varios usuarios concurrentes. Para una
+publicación real en internet, migrá a una base de datos y a almacenamiento de
+archivos duradero antes de escalar.
 
-También se acepta `nombreUser` en lugar de `identificador`, o `email`. Respuesta `200`: mismo formato que registro. Guardar `token` para llamadas autenticadas; al cerrar sesión quitarlo del almacenamiento del frontend.
+## 6. Errores y validación
 
-### Cerrar sesión y obtener cuenta actual
-
-- `POST /auth/logout`: requiere token; devuelve `204` sin contenido.
-- `GET /auth/me`: requiere token; devuelve `{ "user": { ... } }`.
-
-### Buscar compañeros
-
-`GET /users?q=ana&type=medios`: requiere token. Devuelve `{ "data": [...] }`, con IDs y nombres, sin correos ni contraseñas. `type=medios` limita la búsqueda a alumnos de Medios.
-
-### Consultar perfil
-
-`GET /users/:userId`: respuesta `{ "user": { ... }, "projects": [...] }`. Los perfiles públicos no incluyen correo y ocultan teléfono. El propietario puede enviar su token para obtener su propio correo y teléfono.
-
-`GET /users/:userId/reviews`: respuesta `{ "data": [...] }`.
-
-`GET /users/me/favorites`: requiere token; respuesta `{ "data": [proyectos...] }`.
-
-### Explorar proyectos
-
-`GET /projects` devuelve:
-
-```json
-{
-  "data": [
-    {
-      "id": "prj_...",
-      "titulo": "Corto de ejemplo",
-      "tipo": "Cortometraje",
-      "anio": 2025,
-      "genero": "Drama",
-      "duracionMinutos": 14,
-      "descripcion": "Descripción",
-      "url": "https://example.com/video",
-      "imagen": null,
-      "publicadoPor": "usr_...",
-      "equipo": [],
-      "ratingAverage": 0,
-      "ratingCount": 0,
-      "ratingHistogram": [0, 0, 0, 0, 0],
-      "reviewCount": 0,
-      "favoriteCount": 0
-    }
-  ],
-  "pagination": { "page": 1, "limit": 20, "total": 1, "pages": 1 }
-}
-```
-
-### Publicar proyecto
-
-`POST /projects`, requiere sesión de Medios:
-
-```json
-{
-  "titulo": "Corto de ejemplo",
-  "tipo": "Cortometraje",
-  "anio": 2025,
-  "genero": "Drama",
-  "duracionMinutos": 14,
-  "descripcion": "Descripción del proyecto",
-  "url": "https://example.com/video",
-  "imagen": null,
-  "equipo": [
-    {
-      "userId": "usr_id_de_companero",
-      "roles": ["Sonido"],
-      "comment": ""
-    }
-  ]
-}
-```
-
-Valores permitidos para `tipo`: `Cortometraje`, `Podcast y radio`, `Session Bis`, `Cross Media`, `Animación`, `Documental`, `Otro`. `equipo`, `genero`, `duracionMinutos` e `imagen` son opcionales. El backend agrega automáticamente al autor como integrante si no está en el equipo. Respuesta `201`: `{ "project": { ... } }`.
-
-### Ver detalle
-
-`GET /projects/:projectId`: devuelve `project`, `author`, `team`, `ratingAverage`, `ratingCount`, `ratingHistogram`, `reviewCount`, `favoriteCount`, `isFavorite` y `myRating`. Si no se manda token, `isFavorite` es `false` y `myRating` es `null`.
-
-### Favoritos y calificaciones
-
-- `PUT /projects/:projectId/favorite`: agrega el favorito. Devuelve `204`.
-- `DELETE /projects/:projectId/favorite`: lo quita. Devuelve `204`.
-- `PUT /projects/:projectId/rating`: cuerpo `{ "value": 4 }`, valor entero de 1 a 5. Devuelve `{ "rating": { ... } }`. Cada usuario tiene una sola calificación por proyecto; enviar otra la cambia.
-
-### Reseñas
-
-- `GET /projects/:projectId/reviews`: devuelve `{ "data": [...] }`.
-- `POST /projects/:projectId/reviews`: cuerpo `{ "value": 5, "text": "Me gustó mucho" }`; puntaje entero de 1 a 5. Devuelve `201` y `{ "review": { ... } }`.
-
-## 5. Errores que puede mostrar la interfaz
-
-Los errores siguen este formato:
+Los errores usan este formato:
 
 ```json
 { "error": { "message": "Revisá los datos enviados", "fields": { "email": "..." } } }
 ```
 
-`fields` aparece cuando hay campos inválidos. Códigos HTTP principales: `400` solicitud mal formada, `401` sesión faltante/incorrecta, `403` sin permiso, `404` recurso inexistente, `409` correo o usuario repetido, `422` validación. Para mostrar errores, leer `error.message`; no hace falta usar códigos internos.
+`fields` aparece cuando falla la validación. Códigos principales: `400`
+solicitud mal formada, `401` sesión faltante o vencida, `403` sin permiso,
+`404` recurso inexistente, `409` conflicto (por ejemplo, favorito excedido o
+reseña duplicada), `413` carga demasiado grande y `422` campos inválidos. Para
+mostrar el error, leer `error.message`.
 
-## 6. Para entender `dist`
+## 7. Compilar y probar
 
-El código que se edita está en `backend/src/` y está escrito en TypeScript. `npm run build` lo convierte a JavaScript y guarda el resultado en `backend/dist/`. `npm start` ejecuta `dist/server.js`; por eso primero hay que compilar. En desarrollo, `npm run dev` ejecuta el TypeScript directamente y no necesita compilar a mano. `dist` es un archivo generado: no editarlo ni subirlo a Git.
-
-## 7. Datos y alcance
-
-El JSON se crea en `backend/data/db.json`; contiene `users`, `projects`, `favorites`, `ratings`, `reviews` y `sessions`. Está ignorado por Git. No modificarlo mientras el servidor corre.
-
-En esta versión no hay endpoints para editar perfiles/proyectos, eliminar proyectos, archivos CV, respuestas o “me gusta” de reseñas. Si la interfaz necesita una operación nueva, acuerden el contrato y agréguenlo al backend antes de conectar ese control.
-
-`backend/src/store.ts` sí es necesario: carga `db.json` al arrancar, entrega copias de los datos para las lecturas y guarda los cambios en el archivo para que sigan existiendo al reiniciar. También ordena las escrituras para que dos solicitudes del mismo servidor no se pisen. Las rutas de `app.ts` usan `store.read(...)` para consultar y `store.update(...)` para modificar datos.
+Desde `backend`, `npm run dev` inicia el servidor TypeScript, `npm run build`
+compila a `backend/dist/`, `npm start` ejecuta la compilación y `npm test` corre
+la comprobación de TypeScript. `dist` es generado: no editarlo ni subirlo a Git.
